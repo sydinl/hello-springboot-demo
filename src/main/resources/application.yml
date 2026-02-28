@@ -1,0 +1,84 @@
+spring:
+  # 应用配置
+  application:
+    name: hello
+
+  # 数据库配置
+  datasource:
+    url: jdbc:mysql://test-db-mysql.ns-w8j0rju7.svc:3306/mydb?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC
+    username: root
+    password: ss9v9g5x
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # JPA配置
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+
+  # 静态资源配置
+  web:
+    resources:
+      static-locations: classpath:/static/
+      cache:
+        period: 3600
+
+# 服务器配置
+server:
+  port: 8443
+  ssl:
+    key-store-type: PKCS12
+    key-store: classpath:ssl/keystore.p12
+    key-store-password: password
+    key-alias: tomcat
+
+# 自定义配置
+custom:
+  server:
+    port:
+      http: 8080
+
+# 微信支付配置
+wechat:
+  pay:
+    mch-id: 1234567890
+    app-id: wx1234567890abcdef
+    api-key: your-wechat-pay-api-key-here
+    cert-path: /path/to/wechat-pay-cert.p12
+    base-url: https://api.mch.weixin.qq.com
+    notify-url: http://your-domain.com/api/payment/callback
+    timeout-minutes: 30
+  # 微信小程序配置
+  miniprogram:
+    appid: wxc1677434b58be76d
+    secret: 
+
+# JWT配置
+jwt:
+  secret: your-secret-key-here
+  expiration: 86400000
+
+# 图片存储路径
+file:
+  upload-dir: /upload
+
+# 日志配置
+logging:
+  level:
+    com.example.hello: DEBUG
+    # org.springframework.web: DEBUG
+    # org.springframework.http: DEBUG
+    # org.springframework.web.servlet: DEBUG
+    # org.springframework.security.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  charset:
+    console: UTF-8
+    file: UTF-8

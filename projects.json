@@ -1,0 +1,106 @@
+[
+          {
+            "id": 1,
+            "name": "唐足道",
+            "desc": "90分钟+精致自助餐",
+            "price": 128,
+            "category": "foot",
+            "img": "/static/items/wxpic_202508220008253.jpg"
+          },
+          {
+            "id": 2,
+            "name": "韵SPA",
+            "desc": "120分钟+精致自助餐",
+            "price": 268,
+            "category": "spa",
+            "img": "/static/items/wxpic_202508220008262.jpg"
+          },
+          {
+            "id": 3,
+            "name": "梦SPA",
+            "desc": "100分钟+精致自助餐",
+            "price": 198,
+            "category": "spa",
+            "img": "/static/items/wxpic_20250822000826.jpg"
+          },
+          {
+            "id": 4,
+            "name": "清SPA",
+            "desc": "80分钟+精致自助餐",
+            "price": 158,
+            "category": "spa",
+            "img": "/static/items/wxpic_202508220008261.jpg"
+          },
+          {
+            "id": 5,
+            "name": "小项四选一",
+            "desc": "20分钟 采耳/修脚/刮痧/拔罐",
+            "price": 68,
+            "category": "small",
+            "img": "/static/items/wxpic_202508220008267.jpg"
+          },
+          {
+            "id": 6,
+            "name": "怡SPA",
+            "desc": "80分钟+精致自助餐",
+            "price": 508,
+            "category": "spa",
+            "img": "/static/items/wxpic_202508220008266.jpg"
+          },
+          {
+            "id": 7,
+            "name": "禅SPA",
+            "desc": "100分钟+精致自助餐",
+            "price": 688,
+            "category": "spa",
+            "img": "/static/items/wxpic_202508220008265.jpg"
+          },
+          {
+            "id": 8,
+            "name": "悦SPA",
+            "desc": "90分钟+精致自助餐",
+            "price": 388,
+            "category": "spa",
+            "img": "/static/items/wxpic_202508220008254.jpg"
+          },
+          {
+            "id": 9,
+            "name": "盛足道",
+            "desc": "70分钟+精致自助餐",
+            "price": 168,
+            "category": "foot",
+            "img": "/static/items/wxpic_202508220008252.jpg"
+          },
+          {
+            "id": 10,
+            "name": "水足道",
+            "desc": "90分钟+精致自助餐",
+            "price": 288,
+            "category": "foot",
+            "img": "/static/items/wxpic_20250824234702.jpg"
+          },
+          {
+            "id": 11,
+            "name": "镜足道",
+            "desc": "100分钟+精致自助餐",
+            "price": 338,
+            "category": "foot",
+            "img": "/static/items/wxpic_202508220008263.jpg"
+          },
+          {
+            "id": 12,
+            "name": "茶艺",
+            "desc": "60分钟",
+            "price": 198,
+            "category": "other",
+            "img": "/static/items/wxpic_202508220008264.jpg"
+          },
+          {
+            "id": 13,
+            "name": "洗浴搓澡",
+            "desc": "150分钟",
+            "price": 98,
+            "category": "other",
+            "img": "/static/items/wxpic_202508220008251.jpg"
+          }
+        ]

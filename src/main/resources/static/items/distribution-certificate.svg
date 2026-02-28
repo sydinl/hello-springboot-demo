@@ -1,0 +1,41 @@
+<svg width="300" height="200" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景渐变 -->
+  <defs>
+    <linearGradient id="distBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF8E8" />
+      <stop offset="100%" stop-color="#FFF0D5" />
+    </linearGradient>
+    <!-- 边框渐变 -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD700" />
+      <stop offset="100%" stop-color="#FFA500" />
+    </linearGradient>
+    <!-- 按钮渐变 -->
+    <linearGradient id="btnGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF9D4D" />
+      <stop offset="100%" stop-color="#FF6A00" />
+    </linearGradient>
+    <!-- 月亮形状 -->
+    <clipPath id="moonClip">
+      <circle cx="200" cy="50" r="40" />
+    </clipPath>
+  </defs>
+  
+  <!-- 主背景 -->
+  <rect x="10" y="10" width="280" height="180" rx="10" ry="10" fill="url(#distBg)" />
+  <!-- 装饰边框 -->
+  <path d="M10,10 L290,10 L290,190 L10,190 Z M15,15 L285,15 L285,185 L15,185 Z" fill="none" stroke="url(#borderGrad)" stroke-width="2" />
+  <!-- 装饰角 -->
+  <path d="M10,10 L30,10 L30,30 L10,30 Z" fill="url(#borderGrad)" />
+  <path d="M290,10 L270,10 L270,30 L290,30 Z" fill="url(#borderGrad)" />
+  <path d="M10,190 L30,190 L30,170 L10,170 Z" fill="url(#borderGrad)" />
+  <path d="M290,190 L270,190 L270,170 L290,170 Z" fill="url(#borderGrad)" />
+  <!-- 月亮装饰 -->
+  <circle cx="200" cy="50" r="40" fill="#FFF9E5" opacity="0.7" />
+  <!-- 文字 -->
+  <text x="150" y="70" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#E67E22" text-anchor="middle">分销得佣金</text>
+  <text x="150" y="110" font-family="Arial, sans-serif" font-size="16" fill="#E67E22" text-anchor="middle">一键分销 坐拥分红</text>
+  <!-- 按钮 -->
+  <rect x="80" y="130" width="140" height="40" rx="20" ry="20" fill="url(#btnGrad)" />
+  <text x="150" y="155" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#FFFFFF" text-anchor="middle">点击加入分销</text>
+</svg>

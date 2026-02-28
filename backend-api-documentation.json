@@ -1,0 +1,826 @@
+{
+  "api_documentation": {
+    "version": "1.0.0",
+    "description": "SPA休闲会所项目后端接口文档",
+    "apis": [
+      {
+        "name": "用户登录",
+        "path": "/api/user/login",
+        "method": "POST",
+        "description": "用户登录接口",
+        "params": {
+          "phone": "string, 手机号",
+          "password": "string, 密码"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "token": "string, 用户token",
+            "userInfo": {
+              "userId": "string, 用户ID",
+              "nickname": "string, 用户昵称",
+              "avatar": "string, 用户头像",
+              "points": "number, 积分",
+              "balance": "number, 余额",
+              "couponCount": "number, 优惠券数量",
+              "cardCount": "number, 卡券数量"
+            }
+          }
+        }
+      },
+      {
+        "name": "获取用户信息",
+        "path": "/api/user/info",
+        "method": "GET",
+        "description": "获取用户详细信息",
+        "params": {},
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "userId": "string, 用户ID",
+            "nickname": "string, 用户昵称",
+            "realName": "string, 真实姓名",
+            "avatar": "string, 用户头像",
+            "gender": "string, 性别",
+            "birthdate": "string, 出生日期",
+            "phone": "string, 手机号码",
+            "points": "number, 积分",
+            "balance": "number, 余额",
+            "memberLevel": "string, 会员等级",
+            "addressCount": "number, 地址数量",
+            "favoriteCount": "number, 收藏数量"
+          }
+        }
+      },
+      {
+        "name": "更新用户信息",
+        "path": "/api/user/update",
+        "method": "POST",
+        "description": "更新用户个人资料",
+        "params": {
+          "nickname": "string, 昵称",
+          "realName": "string, 真实姓名",
+          "gender": "string, 性别",
+          "birthdate": "string, 出生日期",
+          "avatar": "string, 头像URL"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息"
+        }
+      },
+      {
+        "name": "退出登录",
+        "path": "/api/user/logout",
+        "method": "POST",
+        "description": "用户退出登录",
+        "params": {},
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息"
+        }
+      },
+      {
+        "name": "获取订单列表",
+        "path": "/api/orders/list",
+        "method": "GET",
+        "description": "获取用户订单列表",
+        "params": {
+          "status": "string, 订单状态: all/pending/shipping/completed/aftersale",
+          "page": "number, 页码",
+          "pageSize": "number, 每页数量"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "total": "number, 总条数",
+            "list": [
+              {
+                "orderId": "string, 订单ID",
+                "status": "string, 订单状态",
+                "totalPrice": "number, 订单总价",
+                "createTime": "string, 创建时间",
+                "items": [
+                  {
+                    "itemId": "string, 项目ID",
+                    "name": "string, 项目名称",
+                    "price": "number, 价格",
+                    "count": "number, 数量",
+                    "image": "string, 图片URL"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "获取订单详情",
+        "path": "/api/orders/detail",
+        "method": "GET",
+        "description": "获取订单详细信息",
+        "params": {
+          "orderId": "string, 订单ID"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "orderId": "string, 订单ID",
+            "status": "string, 订单状态",
+            "totalPrice": "number, 订单总价",
+            "createTime": "string, 创建时间",
+            "payTime": "string, 支付时间",
+            "serviceTime": "string, 服务时间",
+            "address": "object, 服务地址信息",
+            "technician": "object, 技师信息",
+            "items": [
+              {
+                "itemId": "string, 项目ID",
+                "name": "string, 项目名称",
+                "price": "number, 价格",
+                "count": "number, 数量",
+                "image": "string, 图片URL",
+                "duration": "string, 时长"
+              }
+            ],
+            "remarks": "string, 备注"
+          }
+        }
+      },
+      {
+        "name": "创建订单",
+        "path": "/api/order/create",
+        "method": "POST",
+        "description": "创建新订单",
+        "params": {
+          "items": "array, 订单项目列表",
+          "totalAmount": "number, 订单总金额",
+          "paymentMethod": "string, 支付方式：balance(余额)/wechat(微信)",
+          "source": "string, 订单来源",
+          "serviceTime": "string, 服务时间",
+          "addressId": "string, 地址ID",
+          "technicianId": "string, 技师ID",
+          "couponId": "string, 优惠券ID",
+          "remarks": "string, 备注"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "orderId": "string, 订单ID",
+            "orderNo": "string, 订单号",
+            "status": "string, 订单状态",
+            "totalAmount": "number, 订单总价",
+            "paymentMethod": "string, 支付方式",
+            "createTime": "string, 创建时间",
+            "expireTime": "string, 过期时间"
+          }
+        }
+      },
+      {
+        "name": "获取微信支付参数",
+        "path": "/api/order/payment/wechat/params",
+        "method": "POST",
+        "description": "获取微信支付参数",
+        "params": {
+          "orderId": "string, 订单ID"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "timeStamp": "string, 时间戳",
+            "nonceStr": "string, 随机字符串",
+            "packageValue": "string, 预支付ID",
+            "signType": "string, 签名类型",
+            "paySign": "string, 支付签名"
+          }
+        }
+      },
+      {
+        "name": "查询支付状态",
+        "path": "/api/order/payment/status",
+        "method": "GET",
+        "description": "查询订单支付状态",
+        "params": {
+          "orderId": "string, 订单ID"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "orderId": "string, 订单ID",
+            "status": "string, 支付状态",
+            "payTime": "string, 支付时间",
+            "transactionId": "string, 微信交易号"
+          }
+        }
+      },
+      {
+        "name": "支付回调处理",
+        "path": "/api/order/payment/callback",
+        "method": "POST",
+        "description": "处理微信支付回调",
+        "params": {
+          "callbackData": "string, 回调数据"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息"
+        }
+      },
+      {
+        "name": "获取积分明细",
+        "path": "/api/assets/points/list",
+        "method": "GET",
+        "description": "获取用户积分明细",
+        "params": {
+          "type": "string, 类型: all/income/expense",
+          "page": "number, 页码",
+          "pageSize": "number, 每页数量"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "total": "number, 总条数",
+            "points": "number, 当前积分",
+            "list": [
+              {
+                "id": "string, 记录ID",
+                "type": "string, 类型: income/expense",
+                "amount": "number, 积分数量",
+                "source": "string, 来源/去向",
+                "createTime": "string, 时间"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "获取余额记录",
+        "path": "/api/assets/balance/list",
+        "method": "GET",
+        "description": "获取用户余额记录",
+        "params": {
+          "month": "string, 月份格式: YYYY-MM",
+          "page": "number, 页码",
+          "pageSize": "number, 每页数量"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "total": "number, 总条数",
+            "balance": "number, 当前余额",
+            "list": [
+              {
+                "id": "string, 记录ID",
+                "type": "string, 类型: recharge/consume/withdraw",
+                "amount": "number, 金额",
+                "source": "string, 来源/去向",
+                "createTime": "string, 时间"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "余额充值",
+        "path": "/api/assets/balance/recharge",
+        "method": "POST",
+        "description": "用户余额充值",
+        "params": {
+          "amount": "number, 充值金额",
+          "paymentMethod": "string, 支付方式"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "orderId": "string, 充值订单ID",
+            "payUrl": "string, 支付链接"
+          }
+        }
+      },
+      {
+        "name": "获取优惠券列表",
+        "path": "/api/assets/coupons/list",
+        "method": "GET",
+        "description": "获取用户优惠券列表",
+        "params": {
+          "status": "string, 状态: unused/used/expired",
+          "page": "number, 页码",
+          "pageSize": "number, 每页数量"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "total": "number, 总条数",
+            "list": [
+              {
+                "id": "string, 优惠券ID",
+                "name": "string, 优惠券名称",
+                "value": "number, 优惠金额",
+                "minOrderAmount": "number, 最低消费金额",
+                "expiryDate": "string, 过期日期",
+                "status": "string, 状态"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "获取卡券列表",
+        "path": "/api/assets/cards/list",
+        "method": "GET",
+        "description": "获取用户卡券列表",
+        "params": {
+          "status": "string, 状态: unused/used/expired",
+          "page": "number, 页码",
+          "pageSize": "number, 每页数量"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "total": "number, 总条数",
+            "list": [
+              {
+                "id": "string, 卡券ID",
+                "name": "string, 卡券名称",
+                "type": "string, 卡券类型",
+                "balance": "number, 余额/次数",
+                "expiryDate": "string, 过期日期",
+                "status": "string, 状态"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "获取项目列表",
+        "path": "/api/projects/list",
+        "method": "GET",
+        "description": "获取服务项目列表",
+        "params": {
+          "category": "string, 项目分类",
+          "page": "number, 页码",
+          "pageSize": "number, 每页数量",
+          "search": "string, 搜索关键词"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "total": "number, 总条数",
+            "list": [
+              {
+                "id": "string, 项目ID",
+                "name": "string, 项目名称",
+                "description": "string, 项目描述",
+                "price": "number, 价格",
+                "image": "string, 项目图片",
+                "duration": "string, 时长",
+                "category": "string, 分类"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "获取项目详情",
+        "path": "/api/projects/detail",
+        "method": "GET",
+        "description": "获取项目详细信息",
+        "params": {
+          "projectId": "string, 项目ID"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "id": "string, 项目ID",
+            "name": "string, 项目名称",
+            "description": "string, 项目描述",
+            "price": "number, 价格",
+            "images": "array, 项目图片列表",
+            "duration": "string, 时长",
+            "category": "string, 分类",
+            "details": "string, 项目详情",
+            "reviews": "array, 用户评价"
+          }
+        }
+      },
+      {
+        "name": "获取技师列表",
+        "path": "/api/technicians/list",
+        "method": "GET",
+        "description": "获取技师列表",
+        "params": {
+          "page": "number, 页码",
+          "pageSize": "number, 每页数量"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "total": "number, 总条数",
+            "list": [
+              {
+                "id": "string, 技师ID",
+                "name": "string, 技师名称",
+                "avatar": "string, 技师头像",
+                "experience": "string, 工作经验",
+                "rating": "number, 评分",
+                "services": "array, 擅长项目"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "获取用户评价",
+        "path": "/api/reviews/list",
+        "method": "GET",
+        "description": "获取用户评价列表",
+        "params": {
+          "page": "number, 页码",
+          "pageSize": "number, 每页数量",
+          "projectId": "string, 可选，项目ID"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "total": "number, 总条数",
+            "list": [
+              {
+                "id": "string, 评价ID",
+                "userId": "string, 用户ID",
+                "userName": "string, 用户名称",
+                "userAvatar": "string, 用户头像",
+                "projectId": "string, 项目ID",
+                "projectName": "string, 项目名称",
+                "rating": "number, 评分",
+                "content": "string, 评价内容",
+                "createTime": "string, 创建时间",
+                "images": "array, 图片列表"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "获取分销中心数据",
+        "path": "/api/distribution/data",
+        "method": "GET",
+        "description": "获取用户分销中心数据",
+        "params": {},
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "totalCommission": "number, 总佣金",
+            "availableCommission": "number, 可提现佣金",
+            "teamCount": "number, 团队人数",
+            "todayOrderCount": "number, 今日订单数"
+          }
+        }
+      },
+      {
+        "name": "获取分销订单列表",
+        "path": "/api/distribution/orders",
+        "method": "GET",
+        "description": "获取分销订单列表",
+        "params": {
+          "page": "number, 页码",
+          "pageSize": "number, 每页数量"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "total": "number, 总条数",
+            "list": [
+              {
+                "id": "string, 分销订单ID",
+                "orderId": "string, 订单ID",
+                "customerName": "string, 客户名称",
+                "commission": "number, 佣金金额",
+                "status": "string, 状态",
+                "createTime": "string, 创建时间"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "获取提现记录",
+        "path": "/api/distribution/withdrawals",
+        "method": "GET",
+        "description": "获取提现记录列表",
+        "params": {
+          "page": "number, 页码",
+          "pageSize": "number, 每页数量"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "total": "number, 总条数",
+            "list": [
+              {
+                "id": "string, 提现记录ID",
+                "amount": "number, 提现金额",
+                "status": "string, 状态",
+                "createTime": "string, 申请时间",
+                "completeTime": "string, 完成时间"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "申请提现",
+        "path": "/api/distribution/applyWithdrawal",
+        "method": "POST",
+        "description": "申请佣金提现",
+        "params": {
+          "amount": "number, 提现金额",
+          "accountInfo": "object, 提现账户信息"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "withdrawalId": "string, 提现记录ID"
+          }
+        }
+      },
+      {
+        "name": "获取门店地址列表",
+        "path": "/api/stores/list",
+        "method": "GET",
+        "description": "获取门店地址列表",
+        "params": {},
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "list": [
+              {
+                "id": "string, 门店ID",
+                "name": "string, 门店名称",
+                "address": "string, 门店地址",
+                "phone": "string, 联系电话",
+                "businessHours": "string, 营业时间",
+                "latitude": "number, 纬度",
+                "longitude": "number, 经度"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "获取会员中心信息",
+        "path": "/api/member/center",
+        "method": "GET",
+        "description": "获取会员中心信息",
+        "params": {},
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "level": "string, 会员等级",
+            "points": "number, 当前积分",
+            "nextLevelPoints": "number, 升级所需积分",
+            "benefits": "array, 会员权益",
+            "levelRules": "array, 等级规则"
+          }
+        }
+      },
+      {
+        "name": "获取项目分类列表",
+        "path": "/api/projects/categories",
+        "method": "GET",
+        "description": "获取项目分类列表",
+        "params": {},
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "list": [
+              {
+                "id": "string, 分类ID",
+                "name": "string, 分类名称",
+                "icon": "string, 分类图标",
+                "projectCount": "number, 项目数量"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "获取热门项目列表",
+        "path": "/api/projects/hot",
+        "method": "GET",
+        "description": "获取热门推荐项目列表",
+        "params": {
+          "page": "number, 页码",
+          "pageSize": "number, 每页数量"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "total": "number, 总条数",
+            "list": [
+              {
+                "id": "string, 项目ID",
+                "name": "string, 项目名称",
+                "description": "string, 项目描述",
+                "price": "number, 价格",
+                "originalPrice": "number, 原价",
+                "image": "string, 项目图片",
+                "salesCount": "number, 销量",
+                "rating": "number, 评分"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "获取个性化推荐项目",
+        "path": "/api/projects/recommend",
+        "method": "GET",
+        "description": "获取基于用户偏好的个性化推荐项目",
+        "params": {
+          "page": "number, 页码",
+          "pageSize": "number, 每页数量"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "total": "number, 总条数",
+            "list": [
+              {
+                "id": "string, 项目ID",
+                "name": "string, 项目名称",
+                "description": "string, 项目描述",
+                "price": "number, 价格",
+                "image": "string, 项目图片",
+                "reason": "string, 推荐理由"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "收藏/取消收藏项目",
+        "path": "/api/projects/favorite",
+        "method": "POST",
+        "description": "收藏或取消收藏服务项目",
+        "params": {
+          "projectId": "string, 项目ID",
+          "action": "string, 操作: add/remove"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "isFavorited": "boolean, 是否已收藏"
+          }
+        }
+      },
+      {
+        "name": "获取用户收藏项目列表",
+        "path": "/api/projects/favorites",
+        "method": "GET",
+        "description": "获取用户收藏的项目列表",
+        "params": {
+          "page": "number, 页码",
+          "pageSize": "number, 每页数量"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "total": "number, 总条数",
+            "list": [
+              {
+                "id": "string, 项目ID",
+                "name": "string, 项目名称",
+                "price": "number, 价格",
+                "image": "string, 项目图片",
+                "collectTime": "string, 收藏时间"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "获取项目可用时间",
+        "path": "/api/projects/available-time",
+        "method": "GET",
+        "description": "获取指定项目和技师的可用预约时间",
+        "params": {
+          "projectId": "string, 项目ID",
+          "technicianId": "string, 技师ID",
+          "date": "string, 预约日期格式: YYYY-MM-DD"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "date": "string, 预约日期",
+            "availableSlots": [
+              {
+                "time": "string, 时间段开始时间",
+                "available": "boolean, 是否可用",
+                "reason": "string, 不可用原因"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "获取项目详情图片",
+        "path": "/api/projects/detail-images",
+        "method": "GET",
+        "description": "获取项目的详细图片列表",
+        "params": {
+          "projectId": "string, 项目ID"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "images": [
+              {
+                "id": "string, 图片ID",
+                "url": "string, 图片URL",
+                "description": "string, 图片描述"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "获取项目评论详情",
+        "path": "/api/projects/reviews/detail",
+        "method": "GET",
+        "description": "获取单个项目评论的详细信息",
+        "params": {
+          "reviewId": "string, 评论ID"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "id": "string, 评论ID",
+            "userId": "string, 用户ID",
+            "userName": "string, 用户名称",
+            "userAvatar": "string, 用户头像",
+            "projectId": "string, 项目ID",
+            "projectName": "string, 项目名称",
+            "rating": "number, 评分",
+            "content": "string, 评价内容",
+            "createTime": "string, 创建时间",
+            "images": "array, 图片列表",
+            "reply": "object, 商家回复信息"
+          }
+        }
+      },
+      {
+        "name": "提交项目评价",
+        "path": "/api/projects/reviews/submit",
+        "method": "POST",
+        "description": "提交项目服务评价",
+        "params": {
+          "orderId": "string, 订单ID",
+          "projectId": "string, 项目ID",
+          "rating": "number, 评分(1-5)",
+          "content": "string, 评价内容",
+          "images": "array, 图片列表",
+          "technicianRating": "number, 技师评分",
+          "environmentRating": "number, 环境评分",
+          "serviceRating": "number, 服务评分"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "reviewId": "string, 评论ID"
+          }
+        }
+      }
+    ]
+  }
+}
