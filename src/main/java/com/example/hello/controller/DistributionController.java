@@ -218,4 +218,20 @@ public class DistributionController {
         m.put("phone", u.getPhone() != null ? u.getPhone().replaceAll("(\\d{3})\\d{4}(\\d{4})", "$1****$2") : null);
         return m;
     }
+
+    /** 推广信息：当前用户 ID 作为推荐人，用于生成推广链接/小程序码 scene */
+    @GetMapping("/promotion-info")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getPromotionInfo(
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        String token = tokenUtil.extractTokenFromHeader(authorization);
+        String userId = token != null ? tokenUtil.getUserIdFromToken(token) : null;
+        if (!StringUtils.hasText(userId)) {
+            return ResponseEntity.ok(ApiResponse.error(401, "请先登录"));
+        }
+        Map<String, Object> data = new java.util.HashMap<>();
+        data.put("referrerId", userId);
+        data.put("scene", "referrerId=" + userId);
+        data.put("invitePath", "/pages/index/index?referrerId=" + userId);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
 }
