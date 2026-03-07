@@ -5,9 +5,9 @@ spring:
 
   # 数据库配置
   datasource:
-    url: jdbc:mysql://test-db-mysql.ns-w8j0rju7.svc:3306/mydb?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://test-db1-mysql.ns-w8j0rju7.svc:3306/mydb?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC
     username: root
-    password: ss9v9g5x
+    password: 6vm4ht7d
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # JPA配置
@@ -42,20 +42,22 @@ custom:
     port:
       http: 8080
 
-# 微信支付配置
+# 微信支付配置（建议 mch-id / app-id / api-key / notify-url 用环境变量，避免泄露）
+# 小程序支付时 app-id 填小程序 AppID，与 miniprogram.appid 一致
 wechat:
   pay:
-    mch-id: 1234567890
-    app-id: wx1234567890abcdef
-    api-key: your-wechat-pay-api-key-here
-    cert-path: /path/to/wechat-pay-cert.p12
+    mch-id: ${WECHAT_PAY_MCH_ID:}
+    app-id: ${WECHAT_PAY_APP_ID:${WECHAT_MINIPROGRAM_APPID:}}
+    api-key: ${WECHAT_PAY_API_KEY:}
+    cert-path: ${WECHAT_PAY_CERT_PATH:}
     base-url: https://api.mch.weixin.qq.com
-    notify-url: http://your-domain.com/api/payment/callback
+    # 支付回调（与 api.js 中 API 域名一致；可覆盖 WECHAT_PAY_NOTIFY_URL）
+    notify-url: ${WECHAT_PAY_NOTIFY_URL:https://wkudoxukpypt.sealoshzh.site/api/order/payment/callback}
     timeout-minutes: 30
   # 微信小程序配置
   miniprogram:
-    appid: wxc1677434b58be76d
-    secret: 
+    appid: ${WECHAT_MINIPROGRAM_APPID:wxc1677434b58be76d}
+    secret: ${WECHAT_MINIPROGRAM_SECRET:}
 
 # JWT配置
 jwt:

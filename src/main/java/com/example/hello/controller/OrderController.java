@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -290,33 +291,21 @@ public class OrderController {
         }
     }
     
-    // 支付回调处理
+    // 支付回调处理（微信 V2 要求返回 XML，否则会重复通知）
     @PostMapping("/payment/callback")
     @RateLimit(maxRequests = 200, timeWindow = 60, message = "支付回调处理过于频繁")
-    public ResponseEntity<Map<String, Object>> handlePaymentCallback(@RequestBody String callbackData) {
+    public ResponseEntity<String> handlePaymentCallback(@RequestBody String callbackData) {
         try {
-            log.info("收到支付回调：{}", callbackData);
-            
-            // 处理支付回调
+            log.info("收到支付回调，长度：{}", callbackData != null ? callbackData.length() : 0);
             boolean success = orderService.handlePaymentCallback(callbackData);
-            
-            Map<String, Object> response = new HashMap<>();
-            if (success) {
-                response.put("code", 0);
-                response.put("message", "success");
-            } else {
-                response.put("code", 1);
-                response.put("message", "fail");
-            }
-            
-            return ResponseEntity.ok(response);
-            
+            String xml = success
+                    ? "<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>"
+                    : "<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[处理失败]]></return_msg></xml>";
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_XML).body(xml);
         } catch (Exception e) {
             log.error("处理支付回调失败", e);
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 1);
-            response.put("message", "fail");
-            return ResponseEntity.ok(response);
+            String xml = "<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[系统异常]]></return_msg></xml>";
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_XML).body(xml);
         }
     }
     

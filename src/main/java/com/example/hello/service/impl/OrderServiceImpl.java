@@ -20,10 +20,13 @@ import com.example.hello.entity.Coupon;
 import com.example.hello.entity.Order;
 import com.example.hello.entity.OrderCouponUsage;
 import com.example.hello.entity.OrderItem;
+import com.example.hello.entity.User;
 import com.example.hello.repository.OrderCouponUsageRepository;
 import com.example.hello.repository.OrderItemRepository;
 import com.example.hello.repository.OrderRepository;
+import com.example.hello.repository.UserRepository;
 import com.example.hello.service.CouponValidationService;
+import com.example.hello.service.WechatPayService;
 import com.example.hello.service.CouponValidationService.CouponValidationResult;
 import com.example.hello.service.OrderService;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +46,12 @@ public class OrderServiceImpl implements OrderService {
     
     @Autowired
     private OrderCouponUsageRepository orderCouponUsageRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private WechatPayService wechatPayService;
     
     @Override
     @Transactional
@@ -235,9 +244,9 @@ public class OrderServiceImpl implements OrderService {
                 
                 // 验证优惠券
                 CouponValidationResult validationResult = couponValidationService.validateCoupon(
-                    request.getCouponCode(), 
-                    "user_id_placeholder", // 这里应该从安全上下文获取真实用户ID
-                    request.getTotalAmount(), 
+                    request.getCouponCode(),
+                    userId,
+                    request.getTotalAmount(),
                     projectIds
                 );
                 
@@ -252,7 +261,7 @@ public class OrderServiceImpl implements OrderService {
                     order.setFinalAmount(finalAmount.doubleValue());
                     
                     // 记录优惠券使用
-                    recordCouponUsage(orderId, validationResult.getCoupon(), request.getTotalAmount(), finalAmount, "user_id_placeholder");
+                    recordCouponUsage(orderId, validationResult.getCoupon(), request.getTotalAmount(), finalAmount, userId);
                 } else {
                     throw new RuntimeException("优惠券验证失败：" + validationResult.getMessage());
                 }
@@ -310,23 +319,21 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public WechatPaymentParams getWechatPaymentParams(UUID orderId) {
         try {
-            // 验证订单存在
-            getOrderDetail(orderId);
-            
-            // 这里应该调用微信支付服务获取支付参数
-            // 暂时返回模拟数据
-            WechatPaymentParams params = new WechatPaymentParams();
-            params.setTimeStamp(String.valueOf(System.currentTimeMillis() / 1000));
-            params.setNonceStr(UUID.randomUUID().toString().replace("-", ""));
-            params.setPackageValue("prepay_id=wx" + System.currentTimeMillis());
-            params.setSignType("MD5");
-            params.setPaySign("mock_sign_" + System.currentTimeMillis());
-            
-            return params;
-            
+            Order order = getOrderDetail(orderId);
+            String userId = order.getUserId();
+            if (userId == null || userId.isEmpty()) {
+                throw new RuntimeException("订单缺少用户信息");
+            }
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("用户不存在"));
+            String openId = user.getOpenId();
+            if (openId == null || openId.isEmpty()) {
+                throw new RuntimeException("用户未绑定微信，无法发起支付");
+            }
+            return wechatPayService.createJsapiPaymentParams(order, openId);
         } catch (Exception e) {
             log.error("获取微信支付参数失败，订单ID：{}", orderId, e);
-            throw new RuntimeException("获取微信支付参数失败", e);
+            throw new RuntimeException("获取微信支付参数失败：" + e.getMessage());
         }
     }
     
@@ -366,12 +373,8 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public boolean handlePaymentCallback(String callbackData) {
         try {
-            log.info("处理支付回调：{}", callbackData);
-            
-            // 这里应该解析微信支付回调数据并更新订单状态
-            // 暂时返回成功
-            return true;
-            
+            log.info("收到支付回调，长度：{}", callbackData != null ? callbackData.length() : 0);
+            return wechatPayService.handleNotify(callbackData);
         } catch (Exception e) {
             log.error("处理支付回调失败", e);
             return false;
