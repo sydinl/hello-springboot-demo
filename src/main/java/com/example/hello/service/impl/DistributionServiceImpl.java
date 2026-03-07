@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,12 +49,45 @@ public class DistributionServiceImpl implements DistributionService {
 
     @Override
     public DistributionData getDistributionData(UUID userId) {
-        // 模拟获取分销中心数据
+        String uid = userId != null ? userId.toString() : null;
+        if (uid == null || uid.isBlank()) {
+            return emptyDistributionData();
+        }
         DistributionData data = new DistributionData();
-        data.setTotalCommission(5000.0);
-        data.setAvailableCommission(3000.0);
-        data.setTeamCount(50);
-        data.setTodayOrderCount(10);
+        Double total = distributionOrderRepository.sumCommissionByReferrerId(uid);
+        data.setTotalCommission(total != null ? total : 0.0);
+        Double pending = distributionOrderRepository.sumCommissionByReferrerIdAndStatus(uid, "pending");
+        data.setAvailableCommission(pending != null ? pending : 0.0);
+        data.setWithdrawnCommission(0.0); // 步骤5提现实现后再从提现记录汇总
+        long level1 = userRepository.countByReferrerId(uid);
+        List<User> level1Users = userRepository.findByReferrerId(uid);
+        long level2 = 0;
+        for (User u : level1Users) {
+            if (u.getId() != null) {
+                level2 += userRepository.countByReferrerId(u.getId());
+            }
+        }
+        data.setTeamCount((int) (level1 + level2));
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        long todayCount = distributionOrderRepository.countByReferrerIdAndCreateTimeAfter(uid, cal.getTime());
+        data.setTodayOrderCount((int) todayCount);
+        long totalOrders = distributionOrderRepository.countByReferrerId(uid);
+        data.setTotalOrderCount((int) totalOrders);
+        return data;
+    }
+
+    private static DistributionData emptyDistributionData() {
+        DistributionData data = new DistributionData();
+        data.setTotalCommission(0.0);
+        data.setAvailableCommission(0.0);
+        data.setWithdrawnCommission(0.0);
+        data.setTeamCount(0);
+        data.setTodayOrderCount(0);
+        data.setTotalOrderCount(0);
         return data;
     }
 

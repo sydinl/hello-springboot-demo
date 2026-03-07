@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.util.StringUtils;
+
 @RestController
 @RequestMapping("/api/distribution")
 public class DistributionController {
@@ -25,7 +27,24 @@ public class DistributionController {
     @Autowired
     private TokenUtil tokenUtil;
     
-    // 获取分销中心数据
+    /** 获取分销中心数据（前端推荐：带 token 即可，无需传 userId） */
+    @GetMapping("/data")
+    public ResponseEntity<ApiResponse<DistributionData>> getDistributionDataByToken(
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        String token = tokenUtil.extractTokenFromHeader(authorization);
+        String userId = token != null ? tokenUtil.getUserIdFromToken(token) : null;
+        if (!StringUtils.hasText(userId)) {
+            return ResponseEntity.ok(ApiResponse.error(401, "请先登录"));
+        }
+        try {
+            DistributionData data = distributionService.getDistributionData(UUID.fromString(userId));
+            return ResponseEntity.ok(ApiResponse.success(data));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.error(400, "用户ID无效"));
+        }
+    }
+
+    /** 获取分销中心数据（兼容旧版：传 userId 参数） */
     @GetMapping("/centerData")
     public ResponseEntity<DistributionData> getDistributionData(@RequestParam UUID userId) {
         DistributionData data = distributionService.getDistributionData(userId);
