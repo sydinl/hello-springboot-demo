@@ -3,7 +3,9 @@ package com.example.hello.controller;
 import com.example.hello.common.ApiResponse;
 import com.example.hello.entity.DistributionData;
 import com.example.hello.entity.DistributionOrder;
+import com.example.hello.entity.User;
 import com.example.hello.entity.Withdrawal;
+import com.example.hello.repository.UserRepository;
 import com.example.hello.service.DistributionService;
 import com.example.hello.service.WithdrawalService;
 import com.example.hello.util.TokenUtil;
@@ -15,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -29,6 +32,9 @@ public class DistributionController {
 
     @Autowired
     private WithdrawalService withdrawalService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private TokenUtil tokenUtil;
@@ -177,5 +183,39 @@ public class DistributionController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.error(400, e.getMessage()));
         }
+    }
+
+    /** 我的团队：一级、二级下级列表（脱敏） */
+    @GetMapping("/team")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getMyTeam(
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        String token = tokenUtil.extractTokenFromHeader(authorization);
+        String userId = token != null ? tokenUtil.getUserIdFromToken(token) : null;
+        if (!StringUtils.hasText(userId)) {
+            return ResponseEntity.ok(ApiResponse.error(401, "请先登录"));
+        }
+        List<User> level1List = userRepository.findByReferrerId(userId);
+        List<Map<String, Object>> level1 = new java.util.ArrayList<>();
+        List<Map<String, Object>> level2 = new java.util.ArrayList<>();
+        for (User u : level1List) {
+            level1.add(userToTeamMember(u));
+            for (User u2 : userRepository.findByReferrerId(u.getId())) {
+                level2.add(userToTeamMember(u2));
+            }
+        }
+        Map<String, Object> data = new java.util.HashMap<>();
+        data.put("level1", level1);
+        data.put("level2", level2);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    private static Map<String, Object> userToTeamMember(User u) {
+        Map<String, Object> m = new java.util.HashMap<>();
+        m.put("id", u.getId());
+        m.put("username", u.getUsername());
+        m.put("avatar", u.getAvatar());
+        m.put("fullName", u.getFullName());
+        m.put("phone", u.getPhone() != null ? u.getPhone().replaceAll("(\\d{3})\\d{4}(\\d{4})", "$1****$2") : null);
+        return m;
     }
 }
