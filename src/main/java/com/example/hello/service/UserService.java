@@ -61,4 +61,9 @@ public interface UserService {
      * 检查手机号是否可用
      */
     boolean isPhoneAvailable(String phone, String excludeUserId);
+
+    /**
+     * 管理员重置/设置用户密码（无需旧密码）
+     */
+    void adminSetPassword(String userId, String newPassword);
 }

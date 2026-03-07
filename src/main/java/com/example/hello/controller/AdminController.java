@@ -236,6 +236,30 @@ public class AdminController {
     }
     
     /**
+     * 管理员修改指定用户密码（无需旧密码）
+     */
+    @PutMapping("/api/users/{userId}/password")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<String>> setUserPassword(@PathVariable String userId, @RequestBody Map<String, String> body) {
+        try {
+            String newPassword = body != null ? body.get("newPassword") : null;
+            if (newPassword == null || newPassword.trim().isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.error("新密码不能为空"));
+            }
+            if (newPassword.length() < 6) {
+                return ResponseEntity.ok(ApiResponse.error("密码长度至少6位"));
+            }
+            userService.adminSetPassword(userId, newPassword.trim());
+            return ResponseEntity.ok(ApiResponse.success("密码已更新"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error("修改密码失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 获取用户统计信息
      */
     @GetMapping("/api/users/statistics")

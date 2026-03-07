@@ -392,4 +392,17 @@ public class UserServiceImpl implements UserService {
             return false;
         }
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void adminSetPassword(String userId, String newPassword) {
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new IllegalArgumentException("密码长度至少6位");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        log.info("管理员已重置用户密码，用户ID：{}", userId);
+    }
 }
