@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -41,4 +42,7 @@ public interface DistributionService {
     ProjectDistributionRate getProjectRate(String projectId);
     ProjectDistributionRate saveProjectRate(String projectId, double level1Rate, double level2Rate);
     void deleteProjectRate(String projectId);
+
+    /** 分销排行：按累计佣金倒序，返回前 limit 条（含用户信息） */
+    List<Map<String, Object>> getCommissionRanking(int limit);
 }

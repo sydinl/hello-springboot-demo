@@ -219,6 +219,15 @@ public class DistributionController {
         return m;
     }
 
+    /** 分销排行：按累计佣金倒序，默认前 20 名 */
+    @GetMapping("/ranking")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getRanking(
+            @RequestParam(defaultValue = "20") int limit) {
+        if (limit <= 0 || limit > 100) limit = 20;
+        List<Map<String, Object>> list = distributionService.getCommissionRanking(limit);
+        return ResponseEntity.ok(ApiResponse.success(list));
+    }
+
     /** 推广信息：当前用户 ID 作为推荐人，用于生成推广链接/小程序码 scene */
     @GetMapping("/promotion-info")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getPromotionInfo(

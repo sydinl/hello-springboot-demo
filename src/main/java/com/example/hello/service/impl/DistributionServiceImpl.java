@@ -20,6 +20,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Page;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -308,5 +309,29 @@ public class DistributionServiceImpl implements DistributionService {
         if (projectId != null && !projectId.isBlank()) {
             projectDistributionRateRepository.deleteByProjectId(projectId);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getCommissionRanking(int limit) {
+        if (limit <= 0) limit = 20;
+        Pageable pageable = PageRequest.of(0, limit);
+        List<Object[]> rows = distributionOrderRepository.sumCommissionGroupByReferrerId(pageable);
+        List<Map<String, Object>> result = new java.util.ArrayList<>();
+        int rank = 1;
+        for (Object[] row : rows) {
+            String referrerId = (String) row[0];
+            Double total = row[1] != null ? ((Number) row[1]).doubleValue() : 0;
+            Map<String, Object> item = new java.util.HashMap<>();
+            item.put("rank", rank++);
+            item.put("userId", referrerId);
+            item.put("totalCommission", total);
+            User u = userRepository.findById(referrerId).orElse(null);
+            item.put("username", u != null ? u.getUsername() : null);
+            item.put("avatar", u != null ? u.getAvatar() : null);
+            item.put("fullName", u != null ? u.getFullName() : null);
+            result.add(item);
+        }
+        return result;
     }
 }

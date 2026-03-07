@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Date;
+import java.util.List;
 
 @Repository
 public interface DistributionOrderRepository extends JpaRepository<DistributionOrder, String> {
@@ -34,4 +35,8 @@ public interface DistributionOrderRepository extends JpaRepository<DistributionO
 
     /** 某推荐人的分销订单总数 */
     long countByReferrerId(String referrerId);
+
+    /** 按推荐人汇总佣金并倒序，用于排行（前 limit 条） */
+    @Query("SELECT d.referrerId, SUM(d.commission) FROM DistributionOrder d GROUP BY d.referrerId ORDER BY SUM(d.commission) DESC")
+    List<Object[]> sumCommissionGroupByReferrerId(Pageable pageable);
 }
