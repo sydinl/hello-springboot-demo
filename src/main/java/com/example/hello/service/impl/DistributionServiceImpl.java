@@ -15,8 +15,10 @@ import com.example.hello.repository.ProjectDistributionRateRepository;
 import com.example.hello.repository.UserRepository;
 import com.example.hello.service.DistributionService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -93,14 +95,20 @@ public class DistributionServiceImpl implements DistributionService {
 
     @Override
     public Page<DistributionOrder> getDistributionOrders(UUID userId, Pageable pageable) {
-        // 模拟获取分销订单列表
-        return Page.empty(pageable);
+        if (userId == null) {
+            return Page.empty(pageable);
+        }
+        String uid = userId.toString();
+        return distributionOrderRepository.findByReferrerId(uid, pageable);
     }
 
     @Override
     public Page<DistributionOrder> getDistributionOrdersByStatus(UUID userId, String status, Pageable pageable) {
-        // 模拟获取指定状态的分销订单
-        return Page.empty(pageable);
+        if (userId == null || status == null || status.isBlank()) {
+            return getDistributionOrders(userId, pageable);
+        }
+        String uid = userId.toString();
+        return distributionOrderRepository.findByReferrerIdAndStatus(uid, status, pageable);
     }
 
     @Override

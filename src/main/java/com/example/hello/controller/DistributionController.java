@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,25 +52,47 @@ public class DistributionController {
         return ResponseEntity.ok(data);
     }
     
-    // 获取分销订单列表
+    /** 获取分销订单列表（推荐：带 token，分页 + 可选状态） */
     @GetMapping("/orders")
-    public ResponseEntity<Page<DistributionOrder>> getDistributionOrders(
-            @RequestParam UUID userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<DistributionOrder> orders = distributionService.getDistributionOrders(userId, pageable);
-        return ResponseEntity.ok(orders);
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getDistributionOrdersByToken(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String status) {
+        String token = tokenUtil.extractTokenFromHeader(authorization);
+        String userId = token != null ? tokenUtil.getUserIdFromToken(token) : null;
+        if (!StringUtils.hasText(userId)) {
+            return ResponseEntity.ok(ApiResponse.error(401, "请先登录"));
+        }
+        try {
+            int page0 = page <= 0 ? 0 : page - 1;
+            Pageable pageable = PageRequest.of(page0, pageSize, Sort.by(Sort.Direction.DESC, "createTime"));
+            Page<DistributionOrder> result;
+            if (StringUtils.hasText(status) && !"all".equalsIgnoreCase(status)) {
+                result = distributionService.getDistributionOrdersByStatus(java.util.UUID.fromString(userId), status, pageable);
+            } else {
+                result = distributionService.getDistributionOrders(java.util.UUID.fromString(userId), pageable);
+            }
+            Map<String, Object> data = new java.util.HashMap<>();
+            data.put("content", result.getContent());
+            data.put("totalElements", result.getTotalElements());
+            data.put("totalPages", result.getTotalPages());
+            data.put("number", result.getNumber());
+            data.put("size", result.getSize());
+            return ResponseEntity.ok(ApiResponse.success(data));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.error(400, "用户ID无效"));
+        }
     }
-    
-    // 获取指定状态的分销订单
+
+    /** 获取分销订单列表（兼容：传 userId 参数） */
     @GetMapping("/ordersByStatus")
     public ResponseEntity<Page<DistributionOrder>> getDistributionOrdersByStatus(
             @RequestParam UUID userId,
             @RequestParam String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createTime"));
         Page<DistributionOrder> orders = distributionService.getDistributionOrdersByStatus(userId, status, pageable);
         return ResponseEntity.ok(orders);
     }
