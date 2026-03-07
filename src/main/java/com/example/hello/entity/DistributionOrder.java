@@ -14,10 +14,14 @@ public class DistributionOrder {
     private String id;
     
     private String orderId;
+    /** 获得佣金的推荐人用户ID */
     private String referrerId;
+    /** 二级分销层级：1=一级推荐人，2=二级推荐人 */
+    @Column(name = "referrer_level")
+    private Integer referrerLevel;
     private String customerName;
     private Double commission;
-    private String status;
+    private String status; // pending/settled
     private Date createTime;
     
     @PrePersist

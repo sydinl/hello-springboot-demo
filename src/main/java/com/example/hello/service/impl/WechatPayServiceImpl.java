@@ -20,6 +20,7 @@ import com.example.hello.config.WechatPayConfig;
 import com.example.hello.dto.WechatPaymentParams;
 import com.example.hello.entity.Order;
 import com.example.hello.repository.OrderRepository;
+import com.example.hello.service.DistributionService;
 import com.example.hello.service.WechatPayService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,6 +40,9 @@ public class WechatPayServiceImpl implements WechatPayService {
 
     @Autowired
     private OrderRepository orderRepository;
+
+    @Autowired
+    private DistributionService distributionService;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -191,6 +195,8 @@ public class WechatPayServiceImpl implements WechatPayService {
             }
             order.setPayTime(new Date());
             orderRepository.save(order);
+            // 支付成功后生成二级分销订单（一级、二级推荐人佣金）
+            distributionService.createDistributionOrdersForPaidOrder(order.getOrderId());
         });
     }
 

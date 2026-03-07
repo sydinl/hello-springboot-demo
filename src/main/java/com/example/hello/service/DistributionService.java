@@ -24,4 +24,10 @@ public interface DistributionService {
      * @return 成功为 true，已绑定过或参数无效为 false
      */
     boolean bindReferrer(String userId, String referrerId);
+
+    /**
+     * 订单支付成功后生成二级分销订单（一级、二级推荐人各一条，若有）。
+     * 由支付回调在订单状态更新为 paid 后调用。
+     */
+    void createDistributionOrdersForPaidOrder(String orderId);
 }

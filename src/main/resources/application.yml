@@ -36,6 +36,11 @@ server:
     key-store-password: password
     key-alias: tomcat
 
+# 二级分销佣金比例（0.10=10% 一级，0.05=5% 二级）
+distribution:
+  level1-rate: 0.10
+  level2-rate: 0.05
+
 # 自定义配置
 custom:
   server:
