@@ -1,11 +1,14 @@
 package com.example.hello.service;
 
+import com.example.hello.entity.DistributionConfig;
 import com.example.hello.entity.DistributionData;
 import com.example.hello.entity.DistributionOrder;
+import com.example.hello.entity.ProjectDistributionRate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -27,7 +30,15 @@ public interface DistributionService {
 
     /**
      * 订单支付成功后生成二级分销订单（一级、二级推荐人各一条，若有）。
-     * 由支付回调在订单状态更新为 paid 后调用。
+     * 按订单内每个商品（项目）配置的比例汇总佣金。
      */
     void createDistributionOrdersForPaidOrder(String orderId);
+
+    // ---------- 管理员：全局与按项目比例 ----------
+    DistributionConfig getGlobalConfig();
+    DistributionConfig updateGlobalConfig(double level1Rate, double level2Rate);
+    List<ProjectDistributionRate> listProjectRates();
+    ProjectDistributionRate getProjectRate(String projectId);
+    ProjectDistributionRate saveProjectRate(String projectId, double level1Rate, double level2Rate);
+    void deleteProjectRate(String projectId);
 }

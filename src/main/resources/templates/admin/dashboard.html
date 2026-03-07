@@ -302,6 +302,9 @@
                         <a class="nav-link" href="#reviews" data-section="reviews">
                             <i class="fas fa-star me-2"></i>评价管理
                         </a>
+                        <a class="nav-link" href="#distribution" data-section="distribution">
+                            <i class="fas fa-percent me-2"></i>分销设置
+                        </a>
                         <hr class="text-white-50">
                         <a class="nav-link" th:href="@{/admin/logout}">
                             <i class="fas fa-sign-out-alt me-2"></i>退出登录
@@ -1427,6 +1430,58 @@
             </div>
         </div>
     </div>
+
+    <!-- 分销设置内容 -->
+    <div id="distribution-section" style="display: none;">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-cog me-2"></i>全局默认比例</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">未单独设置比例的商品将使用以下一级/二级佣金比例。比例填小数，如 0.10 表示 10%。</p>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">一级推荐人比例</label>
+                        <input type="number" class="form-control" id="dist-global-level1" min="0" max="1" step="0.01" placeholder="0.10">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">二级推荐人比例</label>
+                        <input type="number" class="form-control" id="dist-global-level2" min="0" max="1" step="0.01" placeholder="0.05">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-primary" onclick="saveDistributionGlobalConfig()">
+                            <i class="fas fa-save me-1"></i>保存全局比例
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-box me-2"></i>按商品设置比例</h5>
+                <button type="button" class="btn btn-primary" onclick="showDistributionProjectModal()">
+                    <i class="fas fa-plus me-1"></i>设置商品比例
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>项目ID</th>
+                                <th>一级比例</th>
+                                <th>二级比例</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="distribution-project-rates-tbody">
+                            <tr><td colspan="4" class="text-center text-muted">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
                 </div>
             </div>
         </div>
@@ -1924,6 +1979,38 @@
         </div>
     </div>
 
+    <!-- 分销-设置商品比例模态框 -->
+    <div class="modal fade" id="distributionProjectModal" tabindex="-1" aria-labelledby="distributionProjectModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="distributionProjectModalLabel">设置商品分销比例</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="dist-project-rate-id">
+                    <div class="mb-3">
+                        <label for="dist-project-id" class="form-label">项目ID <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="dist-project-id" placeholder="从项目管理中查看项目ID">
+                        <div class="form-text">编辑时不可修改项目ID</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dist-modal-level1" class="form-label">一级推荐人比例</label>
+                        <input type="number" class="form-control" id="dist-modal-level1" min="0" max="1" step="0.01" value="0.10">
+                    </div>
+                    <div class="mb-3">
+                        <label for="dist-modal-level2" class="form-label">二级推荐人比例</label>
+                        <input type="number" class="form-control" id="dist-modal-level2" min="0" max="1" step="0.01" value="0.05">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveDistributionProjectRate()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 用户删除确认模态框 -->
     <div class="modal fade" id="userDeleteModal" tabindex="-1" aria-labelledby="userDeleteModalLabel"
         aria-hidden="true">
@@ -2052,6 +2139,11 @@
                     // 如果显示评价管理页面，加载评价数据
                     if (sectionId === 'reviews-section') {
                         loadReviews();
+                    }
+                    // 如果显示分销设置页面，加载配置与项目比例
+                    if (sectionId === 'distribution-section') {
+                        loadDistributionConfig();
+                        loadDistributionProjectRates();
                     }
                 }
                 
@@ -4321,6 +4413,139 @@
         function showUserError(message) {
             const tbody = document.getElementById('user-table-body');
             tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">${message}</td></tr>`;
+        }
+
+        // ========== 分销设置相关函数 ==========
+        function loadDistributionConfig() {
+            fetch('/admin/api/distribution/config')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.code === 200 && data.data) {
+                        document.getElementById('dist-global-level1').value = data.data.level1Rate != null ? data.data.level1Rate : 0.1;
+                        document.getElementById('dist-global-level2').value = data.data.level2Rate != null ? data.data.level2Rate : 0.05;
+                    }
+                })
+                .catch(e => console.error('加载分销全局配置失败', e));
+        }
+        function saveDistributionGlobalConfig() {
+            const level1 = parseFloat(document.getElementById('dist-global-level1').value);
+            const level2 = parseFloat(document.getElementById('dist-global-level2').value);
+            if (isNaN(level1) || isNaN(level2) || level1 < 0 || level1 > 1 || level2 < 0 || level2 > 1) {
+                alert('请输入 0～1 之间的小数，如 0.10 表示 10%');
+                return;
+            }
+            fetch('/admin/api/distribution/config', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ level1Rate: level1, level2Rate: level2 })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        alert('全局比例已保存');
+                        loadDistributionConfig();
+                    } else {
+                        alert('保存失败: ' + (data.message || '未知错误'));
+                    }
+                })
+                .catch(e => { console.error(e); alert('保存失败'); });
+        }
+        function loadDistributionProjectRates() {
+            fetch('/admin/api/distribution/project-rates')
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.getElementById('distribution-project-rates-tbody');
+                    if (data.code !== 200 || !data.data || !data.data.length) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">暂无按商品设置的比例，未设置的商品将使用全局默认比例</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = data.data.map(r => `
+                        <tr>
+                            <td><code>${escapeHtml(r.projectId || '')}</code></td>
+                            <td>${(r.level1Rate != null ? (r.level1Rate * 100).toFixed(1) : '-')}%</td>
+                            <td>${(r.level2Rate != null ? (r.level2Rate * 100).toFixed(1) : '-')}%</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="editDistributionProjectRate('${escapeHtml(r.projectId)}')">编辑</button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteDistributionProjectRate('${escapeHtml(r.projectId)}')">删除</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                })
+                .catch(e => {
+                    console.error(e);
+                    document.getElementById('distribution-project-rates-tbody').innerHTML =
+                        '<tr><td colspan="4" class="text-center text-danger">加载失败</td></tr>';
+                });
+        }
+        function escapeHtml(s) {
+            if (!s) return '';
+            const div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
+        function showDistributionProjectModal(projectId) {
+            document.getElementById('dist-project-rate-id').value = projectId || '';
+            document.getElementById('dist-project-id').value = projectId || '';
+            document.getElementById('dist-project-id').readOnly = !!projectId;
+            document.getElementById('dist-modal-level1').value = 0.1;
+            document.getElementById('dist-modal-level2').value = 0.05;
+            if (projectId) {
+                fetch('/admin/api/distribution/project-rates/' + encodeURIComponent(projectId))
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.code === 200 && data.data) {
+                            document.getElementById('dist-modal-level1').value = data.data.level1Rate != null ? data.data.level1Rate : 0.1;
+                            document.getElementById('dist-modal-level2').value = data.data.level2Rate != null ? data.data.level2Rate : 0.05;
+                        }
+                    });
+            }
+            new bootstrap.Modal(document.getElementById('distributionProjectModal')).show();
+        }
+        function saveDistributionProjectRate() {
+            const projectId = (document.getElementById('dist-project-id').value || '').trim();
+            if (!projectId) {
+                alert('请输入项目ID');
+                return;
+            }
+            const level1 = parseFloat(document.getElementById('dist-modal-level1').value);
+            const level2 = parseFloat(document.getElementById('dist-modal-level2').value);
+            if (isNaN(level1) || isNaN(level2) || level1 < 0 || level1 > 1 || level2 < 0 || level2 > 1) {
+                alert('比例请输入 0～1 之间的小数');
+                return;
+            }
+            fetch('/admin/api/distribution/project-rates/' + encodeURIComponent(projectId), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ level1Rate: level1, level2Rate: level2 })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        bootstrap.Modal.getInstance(document.getElementById('distributionProjectModal')).hide();
+                        loadDistributionProjectRates();
+                        alert('已保存');
+                    } else {
+                        alert('保存失败: ' + (data.message || '未知错误'));
+                    }
+                })
+                .catch(e => { console.error(e); alert('保存失败'); });
+        }
+        function editDistributionProjectRate(projectId) {
+            showDistributionProjectModal(projectId);
+        }
+        function deleteDistributionProjectRate(projectId) {
+            if (!confirm('确定删除该商品的分销比例设置？删除后将使用全局默认比例。')) return;
+            fetch('/admin/api/distribution/project-rates/' + encodeURIComponent(projectId), { method: 'DELETE' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        loadDistributionProjectRates();
+                        alert('已删除');
+                    } else {
+                        alert('删除失败: ' + (data.message || '未知错误'));
+                    }
+                })
+                .catch(e => { console.error(e); alert('删除失败'); });
         }
 
         // ========== 优惠券管理相关函数 ==========

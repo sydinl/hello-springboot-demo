@@ -1,20 +1,28 @@
 package com.example.hello.service.impl;
 
+import com.example.hello.entity.DistributionConfig;
 import com.example.hello.entity.DistributionData;
 import com.example.hello.entity.DistributionOrder;
 import com.example.hello.entity.Order;
+import com.example.hello.entity.OrderItem;
+import com.example.hello.entity.ProjectDistributionRate;
 import com.example.hello.entity.User;
+import com.example.hello.repository.DistributionConfigRepository;
 import com.example.hello.repository.DistributionOrderRepository;
+import com.example.hello.repository.OrderItemRepository;
 import com.example.hello.repository.OrderRepository;
+import com.example.hello.repository.ProjectDistributionRateRepository;
 import com.example.hello.repository.UserRepository;
 import com.example.hello.service.DistributionService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -29,10 +37,14 @@ public class DistributionServiceImpl implements DistributionService {
     @Autowired
     private OrderRepository orderRepository;
 
-    @Value("${distribution.level1-rate:0.10}")
-    private double level1Rate;
-    @Value("${distribution.level2-rate:0.05}")
-    private double level2Rate;
+    @Autowired
+    private OrderItemRepository orderItemRepository;
+
+    @Autowired
+    private DistributionConfigRepository distributionConfigRepository;
+
+    @Autowired
+    private ProjectDistributionRateRepository projectDistributionRateRepository;
 
     @Override
     public DistributionData getDistributionData(UUID userId) {
@@ -112,18 +124,38 @@ public class DistributionServiceImpl implements DistributionService {
         if (buyer == null || buyer.getReferrerId() == null || buyer.getReferrerId().isBlank()) {
             return; // 无一级推荐人，不生成分销订单
         }
-        double baseAmount = order.getFinalAmount() != null && order.getFinalAmount() > 0
-                ? order.getFinalAmount() : (order.getTotalPrice() != null ? order.getTotalPrice() : 0);
-        if (baseAmount <= 0) {
+        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+        if (items == null || items.isEmpty()) {
             return;
         }
+        double orderTotal = order.getTotalPrice() != null && order.getTotalPrice() > 0
+                ? order.getTotalPrice() : 0;
+        double orderFinal = order.getFinalAmount() != null && order.getFinalAmount() > 0
+                ? order.getFinalAmount() : orderTotal;
+        if (orderTotal <= 0) {
+            return;
+        }
+        // 按商品粒度：每个订单项按比例分摊实付金额，再按该项目的一级/二级比例累加佣金
+        double commission1 = 0;
+        double commission2 = 0;
+        for (OrderItem item : items) {
+            BigDecimal p = item.getPrice();
+            int q = item.getQuantity() != null ? item.getQuantity() : 1;
+            double itemTotal = (p != null ? p.doubleValue() : 0) * q;
+            double itemShare = (itemTotal / orderTotal) * orderFinal;
+            String projectId = item.getProjectId();
+            double l1 = getLevel1RateForProject(projectId);
+            double l2 = getLevel2RateForProject(projectId);
+            commission1 += itemShare * l1;
+            commission2 += itemShare * l2;
+        }
+        commission1 = Math.round(commission1 * 100) / 100.0;
+        commission2 = Math.round(commission2 * 100) / 100.0;
         String customerName = buyer.getFullName() != null ? buyer.getFullName() : buyer.getUsername();
         if (customerName == null) {
             customerName = buyer.getPhone() != null ? buyer.getPhone() : buyerUserId;
         }
-        // 一级推荐人
         String level1ReferrerId = buyer.getReferrerId();
-        double commission1 = Math.round(baseAmount * level1Rate * 100) / 100.0;
         DistributionOrder d1 = new DistributionOrder();
         d1.setOrderId(orderId);
         d1.setReferrerId(level1ReferrerId);
@@ -132,11 +164,9 @@ public class DistributionServiceImpl implements DistributionService {
         d1.setCommission(commission1);
         d1.setStatus("pending");
         distributionOrderRepository.save(d1);
-        // 二级推荐人
         User level1User = userRepository.findById(level1ReferrerId).orElse(null);
         if (level1User != null && level1User.getReferrerId() != null && !level1User.getReferrerId().isBlank()) {
             String level2ReferrerId = level1User.getReferrerId();
-            double commission2 = Math.round(baseAmount * level2Rate * 100) / 100.0;
             DistributionOrder d2 = new DistributionOrder();
             d2.setOrderId(orderId);
             d2.setReferrerId(level2ReferrerId);
@@ -145,6 +175,88 @@ public class DistributionServiceImpl implements DistributionService {
             d2.setCommission(commission2);
             d2.setStatus("pending");
             distributionOrderRepository.save(d2);
+        }
+    }
+
+    private double getLevel1RateForProject(String projectId) {
+        if (projectId != null && !projectId.isBlank()) {
+            Optional<ProjectDistributionRate> opt = projectDistributionRateRepository.findByProjectId(projectId);
+            if (opt.isPresent()) {
+                return opt.get().getLevel1Rate() != null ? opt.get().getLevel1Rate() : 0.10;
+            }
+        }
+        DistributionConfig cfg = getOrCreateGlobalConfig();
+        return cfg.getLevel1Rate() != null ? cfg.getLevel1Rate() : 0.10;
+    }
+
+    private double getLevel2RateForProject(String projectId) {
+        if (projectId != null && !projectId.isBlank()) {
+            Optional<ProjectDistributionRate> opt = projectDistributionRateRepository.findByProjectId(projectId);
+            if (opt.isPresent()) {
+                return opt.get().getLevel2Rate() != null ? opt.get().getLevel2Rate() : 0.05;
+            }
+        }
+        DistributionConfig cfg = getOrCreateGlobalConfig();
+        return cfg.getLevel2Rate() != null ? cfg.getLevel2Rate() : 0.05;
+    }
+
+    private DistributionConfig getOrCreateGlobalConfig() {
+        return distributionConfigRepository.findById("default")
+                .orElseGet(() -> {
+                    DistributionConfig c = new DistributionConfig();
+                    c.setId("default");
+                    c.setLevel1Rate(0.10);
+                    c.setLevel2Rate(0.05);
+                    return distributionConfigRepository.save(c);
+                });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DistributionConfig getGlobalConfig() {
+        return getOrCreateGlobalConfig();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public DistributionConfig updateGlobalConfig(double level1Rate, double level2Rate) {
+        DistributionConfig cfg = getOrCreateGlobalConfig();
+        cfg.setLevel1Rate(level1Rate);
+        cfg.setLevel2Rate(level2Rate);
+        return distributionConfigRepository.save(cfg);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProjectDistributionRate> listProjectRates() {
+        return projectDistributionRateRepository.findAll();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProjectDistributionRate getProjectRate(String projectId) {
+        return projectDistributionRateRepository.findByProjectId(projectId).orElse(null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ProjectDistributionRate saveProjectRate(String projectId, double level1Rate, double level2Rate) {
+        if (projectId == null || projectId.isBlank()) {
+            throw new IllegalArgumentException("projectId 不能为空");
+        }
+        ProjectDistributionRate r = projectDistributionRateRepository.findByProjectId(projectId)
+                .orElse(new ProjectDistributionRate());
+        r.setProjectId(projectId);
+        r.setLevel1Rate(level1Rate);
+        r.setLevel2Rate(level2Rate);
+        return projectDistributionRateRepository.save(r);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteProjectRate(String projectId) {
+        if (projectId != null && !projectId.isBlank()) {
+            projectDistributionRateRepository.deleteByProjectId(projectId);
         }
     }
 }
