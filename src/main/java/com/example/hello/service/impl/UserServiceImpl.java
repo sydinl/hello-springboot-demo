@@ -1,5 +1,6 @@
 package com.example.hello.service.impl;
 
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -228,26 +229,27 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserInfo getUserInfo(UUID userId) {
         try {
-            // 这里应该从数据库查询用户信息
-            // 为了演示，返回一个模拟的用户信息
+            User user = userRepository.findById(userId.toString())
+                    .orElseThrow(() -> new RuntimeException("用户不存在"));
             UserInfo userInfo = new UserInfo();
-            userInfo.setUserId(userId.toString());
-            userInfo.setNickname("用户" + userId.toString().substring(0, 8));
-            userInfo.setRealName("真实姓名");
-            userInfo.setAvatar("https://via.placeholder.com/100");
-            userInfo.setGender("男");
-            userInfo.setBirthdate("1990-01-01");
-            userInfo.setPhone("138****8888");
-            userInfo.setPoints(1000);
-            userInfo.setBalance(500.0);
-            userInfo.setMemberLevel("VIP");
-            userInfo.setAddressCount(3);
-            userInfo.setFavoriteCount(10);
-            userInfo.setCouponCount(5);
-            userInfo.setCardCount(2);
-            
+            userInfo.setUserId(user.getId());
+            // 昵称：微信登录存的是 fullName，否则用 username
+            userInfo.setNickname(user.getFullName() != null && !user.getFullName().isEmpty()
+                    ? user.getFullName() : user.getUsername());
+            userInfo.setRealName(user.getFullName());
+            userInfo.setAvatar(user.getAvatar());
+            userInfo.setGender(user.getGender());
+            userInfo.setBirthdate(user.getBirthdate() != null
+                    ? new SimpleDateFormat("yyyy-MM-dd").format(user.getBirthdate()) : null);
+            userInfo.setPhone(user.getPhone());
+            userInfo.setPoints(user.getPoints() != null ? user.getPoints() : 0);
+            userInfo.setBalance(user.getBalance() != null ? user.getBalance() : 0.0);
+            userInfo.setMemberLevel(user.getMemberLevel());
+            userInfo.setAddressCount(0);
+            userInfo.setFavoriteCount(0);
+            userInfo.setCouponCount(0);
+            userInfo.setCardCount(0);
             return userInfo;
-            
         } catch (Exception e) {
             log.error("获取用户信息失败，用户ID：{}", userId, e);
             throw new RuntimeException("获取用户信息失败", e);
