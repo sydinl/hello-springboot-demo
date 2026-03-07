@@ -93,6 +93,10 @@ public class User implements UserDetails {
     
     @Column(name = "last_login_time")
     private Date lastLoginTime;
+
+    /** 分销：推荐人用户ID（一级），为空表示未通过推荐注册 */
+    @Column(name = "referrer_id")
+    private String referrerId;
     
     @PrePersist
     protected void onCreate() {
