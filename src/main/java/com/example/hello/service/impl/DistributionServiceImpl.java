@@ -13,6 +13,7 @@ import com.example.hello.repository.OrderItemRepository;
 import com.example.hello.repository.OrderRepository;
 import com.example.hello.repository.ProjectDistributionRateRepository;
 import com.example.hello.repository.UserRepository;
+import com.example.hello.repository.WithdrawalRepository;
 import com.example.hello.service.DistributionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -49,6 +50,9 @@ public class DistributionServiceImpl implements DistributionService {
     @Autowired
     private ProjectDistributionRateRepository projectDistributionRateRepository;
 
+    @Autowired
+    private WithdrawalRepository withdrawalRepository;
+
     @Override
     public DistributionData getDistributionData(UUID userId) {
         String uid = userId != null ? userId.toString() : null;
@@ -59,8 +63,12 @@ public class DistributionServiceImpl implements DistributionService {
         Double total = distributionOrderRepository.sumCommissionByReferrerId(uid);
         data.setTotalCommission(total != null ? total : 0.0);
         Double pending = distributionOrderRepository.sumCommissionByReferrerIdAndStatus(uid, "pending");
-        data.setAvailableCommission(pending != null ? pending : 0.0);
-        data.setWithdrawnCommission(0.0); // 步骤5提现实现后再从提现记录汇总
+        Double pendingWithdraw = withdrawalRepository.sumAmountByUserIdAndStatus(uid, "pending");
+        Double completedWithdraw = withdrawalRepository.sumAmountByUserIdAndStatus(uid, "completed");
+        double pendingVal = pending != null ? pending : 0;
+        double pendingWithdrawVal = pendingWithdraw != null ? pendingWithdraw : 0;
+        data.setAvailableCommission(Math.max(0, pendingVal - pendingWithdrawVal));
+        data.setWithdrawnCommission(completedWithdraw != null ? completedWithdraw : 0.0);
         long level1 = userRepository.countByReferrerId(uid);
         List<User> level1Users = userRepository.findByReferrerId(uid);
         long level2 = 0;

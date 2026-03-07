@@ -3,7 +3,9 @@ package com.example.hello.controller;
 import com.example.hello.common.ApiResponse;
 import com.example.hello.entity.DistributionData;
 import com.example.hello.entity.DistributionOrder;
+import com.example.hello.entity.Withdrawal;
 import com.example.hello.service.DistributionService;
+import com.example.hello.service.WithdrawalService;
 import com.example.hello.util.TokenUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -24,6 +26,9 @@ public class DistributionController {
     
     @Autowired
     private DistributionService distributionService;
+
+    @Autowired
+    private WithdrawalService withdrawalService;
 
     @Autowired
     private TokenUtil tokenUtil;
@@ -119,5 +124,58 @@ public class DistributionController {
             return ResponseEntity.ok(ApiResponse.success());
         }
         return ResponseEntity.ok(ApiResponse.error(400, "绑定失败：已绑定过推荐人、推荐人不存在或不能绑定自己"));
+    }
+
+    /** 提现记录列表（带 token，分页，可选 status） */
+    @GetMapping("/withdrawals")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getWithdrawals(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String status) {
+        String token = tokenUtil.extractTokenFromHeader(authorization);
+        String userId = token != null ? tokenUtil.getUserIdFromToken(token) : null;
+        if (!StringUtils.hasText(userId)) {
+            return ResponseEntity.ok(ApiResponse.error(401, "请先登录"));
+        }
+        try {
+            int page0 = page <= 0 ? 0 : page - 1;
+            Pageable pageable = PageRequest.of(page0, pageSize, Sort.by(Sort.Direction.DESC, "createTime"));
+            Page<Withdrawal> result = StringUtils.hasText(status) && !"all".equalsIgnoreCase(status)
+                    ? withdrawalService.getWithdrawalRecordsByStatus(UUID.fromString(userId), status, pageable)
+                    : withdrawalService.getWithdrawalRecords(UUID.fromString(userId), pageable);
+            Map<String, Object> data = new java.util.HashMap<>();
+            data.put("content", result.getContent());
+            data.put("totalElements", result.getTotalElements());
+            data.put("totalPages", result.getTotalPages());
+            data.put("number", result.getNumber());
+            data.put("size", result.getSize());
+            return ResponseEntity.ok(ApiResponse.success(data));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.error(400, "用户ID无效"));
+        }
+    }
+
+    /** 申请提现。body: { "amount": 100.5 } */
+    @PostMapping("/applyWithdrawal")
+    public ResponseEntity<ApiResponse<Withdrawal>> applyWithdrawal(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestBody Map<String, Object> body) {
+        String token = tokenUtil.extractTokenFromHeader(authorization);
+        String userId = token != null ? tokenUtil.getUserIdFromToken(token) : null;
+        if (!StringUtils.hasText(userId)) {
+            return ResponseEntity.ok(ApiResponse.error(401, "请先登录"));
+        }
+        Object a = body != null ? body.get("amount") : null;
+        double amount = a instanceof Number ? ((Number) a).doubleValue() : (a != null ? Double.parseDouble(a.toString()) : 0);
+        if (amount <= 0) {
+            return ResponseEntity.ok(ApiResponse.error(400, "提现金额必须大于0"));
+        }
+        try {
+            Withdrawal w = withdrawalService.applyWithdrawal(UUID.fromString(userId), amount);
+            return ResponseEntity.ok(ApiResponse.success(w));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.error(400, e.getMessage()));
+        }
     }
 }
