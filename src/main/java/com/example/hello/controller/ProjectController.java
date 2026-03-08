@@ -23,6 +23,7 @@ import com.example.hello.entity.Project;
 import com.example.hello.entity.ProjectCategory;
 import com.example.hello.service.ProjectCategoryService;
 import com.example.hello.service.ProjectService;
+import com.example.hello.util.CloudStorageUtil;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -34,6 +35,19 @@ public class ProjectController {
     
     @Autowired
     private ProjectCategoryService projectCategoryService;
+    
+    /**
+     * 转换项目列表中的云开发 FileID 为 HTTPS URL（用于网页端展示）
+     */
+    private void convertProjectImageUrls(List<Project> projects) {
+        if (projects != null) {
+            projects.forEach(project -> {
+                if (project.getImage() != null) {
+                    project.setImage(CloudStorageUtil.convertFileIdToUrl(project.getImage()));
+                }
+            });
+        }
+    }
     
     // 1.1 获取项目列表 - 支持分类筛选和分页（只返回启用状态的项目）
     @GetMapping("/list")
@@ -61,9 +75,13 @@ public class ProjectController {
             projects = projectService.getActiveProjectList(pageable);
         }
         
+        // 转换云开发 FileID 为 HTTPS URL（用于网页端展示）
+        List<Project> projectList = projects.getContent();
+        convertProjectImageUrls(projectList);
+        
         Map<String, Object> result = new HashMap<>();
         result.put("total", projects.getTotalElements());
-        result.put("list", projects.getContent());
+        result.put("list", projectList);
         
         return ApiResponse.success(result);
     }
@@ -85,9 +103,13 @@ public class ProjectController {
         Pageable pageable = PageRequest.of(page - 1, pageSize);
         Page<Project> projects = projectService.getProjectsByCategoryId(categoryId, pageable);
         
+        // 转换云开发 FileID 为 HTTPS URL
+        List<Project> projectList = projects.getContent();
+        convertProjectImageUrls(projectList);
+        
         Map<String, Object> result = new HashMap<>();
         result.put("total", projects.getTotalElements());
-        result.put("list", projects.getContent());
+        result.put("list", projectList);
         result.put("categoryId", categoryId);
         
         return ApiResponse.success(result);
@@ -103,9 +125,13 @@ public class ProjectController {
         // 热门项目也需要是启用状态的
         Page<Project> hotProjects = projectService.getActiveHotProjects(pageable);
         
+        // 转换云开发 FileID 为 HTTPS URL
+        List<Project> hotProjectList = hotProjects.getContent();
+        convertProjectImageUrls(hotProjectList);
+        
         Map<String, Object> result = new HashMap<>();
         result.put("total", hotProjects.getTotalElements());
-        result.put("list", hotProjects.getContent());
+        result.put("list", hotProjectList);
         
         return ApiResponse.success(result);
     }
@@ -120,9 +146,13 @@ public class ProjectController {
         // 推荐项目也需要是启用状态的
         Page<Project> recommendProjects = projectService.getActiveRecommendProjects(pageable);
         
+        // 转换云开发 FileID 为 HTTPS URL
+        List<Project> recommendProjectList = recommendProjects.getContent();
+        convertProjectImageUrls(recommendProjectList);
+        
         Map<String, Object> result = new HashMap<>();
         result.put("total", recommendProjects.getTotalElements());
-        result.put("list", recommendProjects.getContent());
+        result.put("list", recommendProjectList);
         
         return ApiResponse.success(result);
     }
@@ -132,6 +162,10 @@ public class ProjectController {
     public ApiResponse<Project> getProjectDetail(@RequestParam String projectId) {
         try {
             Project project = projectService.getProjectDetail(projectId);
+            // 转换云开发 FileID 为 HTTPS URL
+            if (project.getImage() != null) {
+                project.setImage(CloudStorageUtil.convertFileIdToUrl(project.getImage()));
+            }
             return ApiResponse.success(project);
         } catch (Exception e) {
             return ApiResponse.error("获取项目详情失败：" + e.getMessage());
@@ -298,9 +332,17 @@ public class ProjectController {
             projects = projectService.getProjectList(pageable);
         }
         
+        // 转换云开发 FileID 为 HTTPS URL（用于网页端展示）
+        List<Project> projectList = projects.getContent();
+        projectList.forEach(project -> {
+            if (project.getImage() != null) {
+                project.setImage(CloudStorageUtil.convertFileIdToUrl(project.getImage()));
+            }
+        });
+        
         Map<String, Object> result = new HashMap<>();
         result.put("total", projects.getTotalElements());
-        result.put("list", projects.getContent());
+        result.put("list", projectList);
         
         return ApiResponse.success(result);
     }
