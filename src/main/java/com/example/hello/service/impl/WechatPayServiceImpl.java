@@ -13,6 +13,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -44,7 +45,15 @@ public class WechatPayServiceImpl implements WechatPayService {
     @Autowired
     private DistributionService distributionService;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = createRestTemplateUtf8();
+
+    /** 微信接口返回 XML 为 UTF-8，需用 UTF-8 解码否则中文乱码 */
+    private static RestTemplate createRestTemplateUtf8() {
+        RestTemplate rt = new RestTemplate();
+        rt.getMessageConverters().removeIf(c -> c instanceof StringHttpMessageConverter);
+        rt.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
+        return rt;
+    }
 
     @Override
     public WechatPaymentParams createJsapiPaymentParams(Order order, String openId) {
@@ -99,12 +108,16 @@ public class WechatPayServiceImpl implements WechatPayService {
             String returnCode = respMap.get("return_code");
             String resultCode = respMap.get("result_code");
             if (!"SUCCESS".equals(returnCode)) {
-                String returnMsg = respMap.get("return_msg");
-                throw new RuntimeException("统一下单通信失败: " + returnMsg);
+                String returnMsg = decodeWechatMsg(respMap.get("return_msg"));
+                String hint = "";
+                if (returnMsg != null && (returnMsg.contains("签名") || returnMsg.contains("sign"))) {
+                    hint = " 请确认使用的是商户平台「API安全」中的 APIv2 密钥（32位），不是 APIv3 密钥；且密钥无空格、无复制错误。";
+                }
+                throw new RuntimeException("统一下单通信失败: " + returnMsg + hint);
             }
             if (!"SUCCESS".equals(resultCode)) {
                 String errCode = respMap.get("err_code");
-                String errCodeDes = respMap.get("err_code_des");
+                String errCodeDes = decodeWechatMsg(respMap.get("err_code_des"));
                 throw new RuntimeException("统一下单业务失败: " + errCode + " " + errCodeDes);
             }
 
@@ -238,6 +251,18 @@ public class WechatPayServiceImpl implements WechatPayService {
     }
 
     private static final Pattern XML_TAG = Pattern.compile("<([^>!/]+)>([^<]*(?:<!\\[CDATA\\[([^]]*)\\]\\]>)?[^<]*)</\\1>");
+
+    /** 微信返回中文若被误解析为 ISO-8859-1 会乱码，尝试恢复为 UTF-8 */
+    private static String decodeWechatMsg(String msg) {
+        if (msg == null || msg.isEmpty()) return msg;
+        if (msg.matches(".*[\\u4e00-\\u9fa5].*")) return msg;
+        try {
+            String decoded = new String(msg.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
+            return decoded.matches(".*[\\u4e00-\\u9fa5].*") ? decoded : msg;
+        } catch (Exception e) {
+            return msg;
+        }
+    }
 
     private Map<String, String> parseXmlToMap(String xml) {
         Map<String, String> map = new TreeMap<>();
