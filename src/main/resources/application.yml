@@ -42,8 +42,10 @@ custom:
     port:
       http: 8080
 
-# 微信支付配置（建议 mch-id / app-id / api-key / notify-url 用环境变量，避免泄露）
-# 小程序支付时 app-id 填小程序 AppID，与 miniprogram.appid 一致
+# 微信支付配置
+# 必填（缺一则走模拟支付）：mch-id、app-id、api-key；回调需 notify-url 可访问
+# 环境变量：WECHAT_PAY_MCH_ID、WECHAT_PAY_APP_ID、WECHAT_PAY_API_KEY、WECHAT_PAY_NOTIFY_URL
+# 小程序支付时 app-id 必须与小程序 AppID 一致（可与 miniprogram.appid 同）
 wechat:
   pay:
     mch-id: ${WECHAT_PAY_MCH_ID:}
@@ -51,17 +53,15 @@ wechat:
     api-key: ${WECHAT_PAY_API_KEY:}
     cert-path: ${WECHAT_PAY_CERT_PATH:}
     base-url: https://api.mch.weixin.qq.com
-    # 支付回调（与 api.js 中 API 域名一致；可覆盖 WECHAT_PAY_NOTIFY_URL）
     notify-url: ${WECHAT_PAY_NOTIFY_URL:https://wkudoxukpypt.sealoshzh.site/api/order/payment/callback}
     timeout-minutes: 30
-  # 微信小程序配置
   miniprogram:
     appid: ${WECHAT_MINIPROGRAM_APPID:wxc1677434b58be76d}
     secret: ${WECHAT_MINIPROGRAM_SECRET:}
 
-# JWT配置
+# JWT配置（secret 已生成，生产环境建议用环境变量 JWT_SECRET 覆盖）
 jwt:
-  secret: your-secret-key-here
+  secret: l0FTlNA0iC4Q93eY4tnqq6IKa0LW6aUtUAodlOmn9e5l0eK1vEdP6KZYf9W5psD6
   expiration: 86400000
 
 # 图片存储路径
