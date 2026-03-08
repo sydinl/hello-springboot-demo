@@ -76,7 +76,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Order getOrderDetail(UUID orderId) {
         try {
-            return orderRepository.findById(orderId.toString())
+            return orderRepository.findByIdWithItems(orderId.toString())
                     .orElseThrow(() -> new RuntimeException("订单不存在，订单ID：" + orderId));
         } catch (Exception e) {
             log.error("查询订单详情失败，订单ID：{}", orderId, e);
@@ -451,5 +451,31 @@ public class OrderServiceImpl implements OrderService {
             log.error("记录优惠券使用失败，订单ID：{}，优惠券代码：{}", orderId, coupon.getCouponCode(), e);
             throw new RuntimeException("记录优惠券使用失败", e);
         }
+    }
+
+    @Override
+    @Transactional
+    public String generateVerificationCode(String orderId, String userId) {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("订单不存在"));
+        if (!userId.equals(order.getUserId())) {
+            throw new RuntimeException("无权操作该订单");
+        }
+        if (!"paid".equals(order.getStatus())) {
+            throw new RuntimeException("仅已支付订单可生成核销码");
+        }
+        String code = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        order.setVerificationCode(code);
+        orderRepository.save(order);
+        log.info("订单{}生成核销码", orderId);
+        return code;
+    }
+
+    @Override
+    public String getVerificationCode(String orderId, String userId) {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("订单不存在"));
+        if (!userId.equals(order.getUserId())) {
+            throw new RuntimeException("无权查看该订单");
+        }
+        return order.getVerificationCode();
     }
 }

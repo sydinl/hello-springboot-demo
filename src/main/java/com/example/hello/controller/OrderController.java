@@ -102,11 +102,71 @@ public class OrderController {
         }
     }
     
-    // 获取订单详情
+    // 获取订单详情（带订单项，需登录且仅能查本人订单）
     @GetMapping("/detail")
-    public ResponseEntity<Order> getOrderDetail(@RequestParam UUID orderId) {
-        Order order = orderService.getOrderDetail(orderId);
-        return ResponseEntity.ok(order);
+    public ResponseEntity<ApiResponse<Order>> getOrderDetail(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestParam String orderId) {
+        try {
+            String userId = tokenUtil.getUserIdFromHeader(authorization);
+            if (userId == null) {
+                return ResponseEntity.ok(ApiResponse.error(2001, "请先登录"));
+            }
+            Order order = orderService.getOrderDetail(UUID.fromString(orderId));
+            if (!userId.equals(order.getUserId())) {
+                return ResponseEntity.ok(ApiResponse.error(2003, "无权查看该订单"));
+            }
+            return ResponseEntity.ok(ApiResponse.success(order));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.error(1001, "订单ID格式错误"));
+        } catch (Exception e) {
+            log.error("获取订单详情失败", e);
+            return ResponseEntity.ok(ApiResponse.error(3001, e.getMessage()));
+        }
+    }
+
+    // 生成核销码（仅已支付订单，需登录）
+    @PostMapping("/verification/generate")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> generateVerificationCode(
+            @RequestHeader("Authorization") String authorization,
+            @RequestBody Map<String, String> body) {
+        try {
+            String userId = tokenUtil.getUserIdFromHeader(authorization);
+            if (userId == null) {
+                return ResponseEntity.ok(ApiResponse.error(2001, "请先登录"));
+            }
+            String orderId = body != null ? body.get("orderId") : null;
+            if (orderId == null || orderId.isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.error(1001, "订单ID不能为空"));
+            }
+            String code = orderService.generateVerificationCode(orderId, userId);
+            Map<String, Object> data = new HashMap<>();
+            data.put("verificationCode", code);
+            return ResponseEntity.ok(ApiResponse.success(data));
+        } catch (Exception e) {
+            log.error("生成核销码失败", e);
+            return ResponseEntity.ok(ApiResponse.error(3001, e.getMessage()));
+        }
+    }
+
+    // 获取核销码（需登录）
+    @GetMapping("/verification/get")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getVerificationCode(
+            @RequestHeader("Authorization") String authorization,
+            @RequestParam String orderId) {
+        try {
+            String userId = tokenUtil.getUserIdFromHeader(authorization);
+            if (userId == null) {
+                return ResponseEntity.ok(ApiResponse.error(2001, "请先登录"));
+            }
+            String code = orderService.getVerificationCode(orderId, userId);
+            Map<String, Object> data = new HashMap<>();
+            data.put("verificationCode", code);
+            return ResponseEntity.ok(ApiResponse.success(data));
+        } catch (Exception e) {
+            log.error("获取核销码失败", e);
+            return ResponseEntity.ok(ApiResponse.error(3001, e.getMessage()));
+        }
     }
     
     // 按用户ID查询订单列表

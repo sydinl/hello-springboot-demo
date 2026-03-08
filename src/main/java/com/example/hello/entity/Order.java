@@ -77,6 +77,9 @@ public class Order {
     
     private String remarks;
     
+    @Column(name = "verification_code", length = 32)
+    private String verificationCode; // 核销码（已支付订单可生成）
+    
     @OneToMany(mappedBy = "orderId", cascade = CascadeType.ALL, fetch = jakarta.persistence.FetchType.LAZY)
     private List<OrderItem> items;
     

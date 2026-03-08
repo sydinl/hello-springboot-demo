@@ -45,6 +45,12 @@ public interface OrderService {
     
     // 根据订单号获取订单详情
     Order getOrderByOrderNo(String orderNo);
+
+    // 生成核销码（仅已支付订单）
+    String generateVerificationCode(String orderId, String userId);
+
+    // 获取核销码
+    String getVerificationCode(String orderId, String userId);
     
     // 获取微信支付参数
     WechatPaymentParams getWechatPaymentParams(UUID orderId);
