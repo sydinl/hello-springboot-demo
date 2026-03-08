@@ -1515,10 +1515,6 @@
                                     required>
                             </div>
                             <div class="col-md-6">
-                                <label for="project-duration" class="form-label">项目时长</label>
-                                <input type="text" class="form-control" id="project-duration" placeholder="如：60分钟">
-                            </div>
-                            <div class="col-md-6">
                                 <label for="project-status" class="form-label">状态</label>
                                 <select class="form-select" id="project-status">
                                     <option value="active">启用</option>
@@ -2358,7 +2354,6 @@
                         document.getElementById('project-name').value = project.name;
                         document.getElementById('project-category').value = project.categoryId || '';
                         document.getElementById('project-price').value = project.price;
-                        document.getElementById('project-duration').value = project.duration || '';
                         document.getElementById('project-status').value = project.status || 'active';
                         document.getElementById('project-image').value = project.image || '';
                         document.getElementById('project-description').value = project.description || '';
@@ -2386,7 +2381,7 @@
                 category: document.getElementById('project-category').value, // 保留分类名称用于显示
                 categoryId: document.getElementById('project-category').value, // 添加分类ID用于关联
                 price: parseFloat(document.getElementById('project-price').value),
-                duration: document.getElementById('project-duration').value,
+                duration: '60分钟',
                 status: document.getElementById('project-status').value,
                 image: document.getElementById('project-image').value,
                 description: document.getElementById('project-description').value,
