@@ -7,6 +7,7 @@ import com.example.hello.entity.User;
 import com.example.hello.entity.Withdrawal;
 import com.example.hello.repository.UserRepository;
 import com.example.hello.service.DistributionService;
+import com.example.hello.service.WechatMiniprogramService;
 import com.example.hello.service.WithdrawalService;
 import com.example.hello.util.TokenUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -38,6 +41,9 @@ public class DistributionController {
 
     @Autowired
     private TokenUtil tokenUtil;
+
+    @Autowired
+    private WechatMiniprogramService wechatMiniprogramService;
     
     /** 获取分销中心数据（前端推荐：带 token 即可，无需传 userId） */
     @GetMapping("/data")
@@ -241,6 +247,29 @@ public class DistributionController {
         data.put("referrerId", userId);
         data.put("scene", "referrerId=" + userId);
         data.put("invitePath", "/pages/index/index?referrerId=" + userId);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    /** 生成推广用小程序码图片，返回 base64 供前端展示/保存 */
+    @GetMapping("/promotion-qrcode/image")
+    public ResponseEntity<ApiResponse<Map<String, String>>> getPromotionQrcodeImage(
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        String token = tokenUtil.extractTokenFromHeader(authorization);
+        String userId = token != null ? tokenUtil.getUserIdFromToken(token) : null;
+        if (userId == null || !StringUtils.hasText(userId)) {
+            return ResponseEntity.ok(ApiResponse.error(401, "请先登录"));
+        }
+        String scene = userId.replace("-", "");
+        if (scene.length() > 32) scene = scene.substring(0, 32);
+        String page = "pages/index/index";
+        byte[] bytes = wechatMiniprogramService.generateUnlimitedWxacode(scene, page);
+        if (bytes == null || bytes.length == 0) {
+            return ResponseEntity.ok(ApiResponse.error(500, "生成小程序码失败，请确认小程序已配置并发布"));
+        }
+        String base64 = Base64.getEncoder().encodeToString(bytes);
+        Map<String, String> data = new HashMap<>();
+        data.put("imageBase64", base64);
+        data.put("mimeType", "image/png");
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 }

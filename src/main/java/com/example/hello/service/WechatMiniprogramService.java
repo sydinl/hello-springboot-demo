@@ -37,6 +37,14 @@ public interface WechatMiniprogramService {
     boolean validateAccessToken(String accessToken);
     
     /**
+     * 生成小程序码（不限制数量，用于推广等）
+     * @param scene 场景值，最多32个字符，如 referrerId=xxx
+     * @param page 小程序页面路径，如 pages/index/index
+     * @return 小程序码图片字节，失败返回 null
+     */
+    byte[] generateUnlimitedWxacode(String scene, String page);
+    
+    /**
      * 微信用户信息内部类
      */
     class WechatUserInfo {

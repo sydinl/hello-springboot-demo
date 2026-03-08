@@ -6,6 +6,10 @@ import java.util.Map;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -42,8 +46,12 @@ public class WechatMiniprogramServiceImpl implements WechatMiniprogramService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
     
-    // 微信API地址
+    private volatile String cachedWechatAccessToken;
+    private volatile long cachedWechatTokenExpiresAt;
+    
     private static final String WECHAT_CODE2SESSION_URL = "https://api.weixin.qq.com/sns/jscode2session";
+    private static final String WECHAT_TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/token";
+    private static final String WECHAT_GETWXACODE_UNLIMIT_URL = "https://api.weixin.qq.com/wxa/getwxacodeunlimit";
     
     @Override
     public WechatMiniprogramLoginResponse login(WechatMiniprogramLoginRequest request) {
@@ -314,5 +322,64 @@ public class WechatMiniprogramServiceImpl implements WechatMiniprogramService {
         claims.put("openId", user.getOpenId());
         
         return jwtUtil.generateToken(user.getUsername(), claims);
+    }
+
+    /**
+     * 获取微信接口 access_token（用于调用 getwxacodeunlimit 等），带简单缓存
+     */
+    private String getWechatAccessToken() {
+        if (cachedWechatAccessToken != null && System.currentTimeMillis() < cachedWechatTokenExpiresAt) {
+            return cachedWechatAccessToken;
+        }
+        if (appId == null || appId.isEmpty() || appSecret == null || appSecret.isEmpty()) {
+            log.warn("小程序 appId/secret 未配置，无法生成小程序码");
+            return null;
+        }
+        String url = WECHAT_TOKEN_URL + "?grant_type=client_credential&appid=" + appId + "&secret=" + appSecret;
+        try {
+            ResponseEntity<String> resp = restTemplate.getForEntity(url, String.class);
+            JsonNode node = objectMapper.readTree(resp.getBody());
+            if (node.has("errcode") && node.get("errcode").asInt() != 0) {
+                log.error("获取微信 access_token 失败: {}", resp.getBody());
+                return null;
+            }
+            cachedWechatAccessToken = node.get("access_token").asText();
+            int expiresIn = node.has("expires_in") ? node.get("expires_in").asInt() : 7200;
+            cachedWechatTokenExpiresAt = System.currentTimeMillis() + (expiresIn - 300) * 1000L;
+            return cachedWechatAccessToken;
+        } catch (Exception e) {
+            log.error("获取微信 access_token 异常", e);
+            return null;
+        }
+    }
+
+    @Override
+    public byte[] generateUnlimitedWxacode(String scene, String page) {
+        String token = getWechatAccessToken();
+        if (token == null) return null;
+        String url = WECHAT_GETWXACODE_UNLIMIT_URL + "?access_token=" + token;
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("scene", scene != null && scene.length() > 32 ? scene.substring(0, 32) : scene);
+            body.put("page", page != null && !page.isEmpty() ? page : "pages/index/index");
+            body.put("width", 280);
+            body.put("check_path", false);
+            String bodyJson = objectMapper.writeValueAsString(body);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            ResponseEntity<byte[]> resp = restTemplate.exchange(url, HttpMethod.POST,
+                    new HttpEntity<>(bodyJson, headers), byte[].class);
+            byte[] bytes = resp.getBody();
+            if (bytes == null || bytes.length == 0) return null;
+            if (bytes[0] == '{') {
+                JsonNode node = objectMapper.readTree(bytes);
+                log.error("生成小程序码失败: {}", node.toString());
+                return null;
+            }
+            return bytes;
+        } catch (Exception e) {
+            log.error("生成小程序码异常", e);
+            return null;
+        }
     }
 }
