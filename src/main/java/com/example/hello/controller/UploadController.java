@@ -1,0 +1,104 @@
+package com.example.hello.controller;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import com.example.hello.common.ApiResponse;
+import com.example.hello.service.TencentCosService;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * 文件上传（用户头像等）。优先腾讯云 COS，未配置时落盘到 file.upload-dir。
+ */
+@Slf4j
+@RestController
+@RequestMapping("/api/upload")
+public class UploadController {
+
+    @Value("${file.upload-dir:upload}")
+    private String uploadDir;
+
+    @Autowired(required = false)
+    private TencentCosService tencentCosService;
+
+    private static final long MAX_AVATAR_SIZE = 2 * 1024 * 1024; // 2MB
+    private static final String[] ALLOWED_EXT = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+
+    /**
+     * 上传用户头像。若已配置腾讯云 COS 则上传到 COS 并返回完整 URL；否则保存到本地，返回相对路径（前端需拼接 baseUrl）。
+     */
+    @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<Map<String, String>> uploadAvatar(@RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return ApiResponse.error("请选择图片");
+        }
+        if (file.getSize() > MAX_AVATAR_SIZE) {
+            return ApiResponse.error("图片大小不能超过 2MB");
+        }
+        String originalName = file.getOriginalFilename();
+        if (originalName == null) {
+            originalName = "image";
+        }
+        String ext = "";
+        int lastDot = originalName.lastIndexOf('.');
+        if (lastDot > 0 && lastDot < originalName.length() - 1) {
+            ext = originalName.substring(lastDot).toLowerCase();
+        }
+        if (ext.isEmpty()) {
+            ext = ".jpg";
+        }
+        boolean allowed = false;
+        for (String e : ALLOWED_EXT) {
+            if (e.equals(ext)) {
+                allowed = true;
+                break;
+            }
+        }
+        if (!allowed) {
+            return ApiResponse.error("仅支持 jpg、png、gif、webp 格式");
+        }
+        String fileName = "avatar_" + UUID.randomUUID().toString().replace("-", "") + ext;
+
+        if (tencentCosService != null && tencentCosService.isEnabled()) {
+            String fullUrl = tencentCosService.upload(file, fileName);
+            if (fullUrl != null) {
+                Map<String, String> data = new HashMap<>();
+                data.put("url", fullUrl);
+                return ApiResponse.success(data);
+            }
+            log.warn("COS 上传失败，回退到本地存储");
+        }
+
+        Path dir = Paths.get(uploadDir).toAbsolutePath().normalize();
+        try {
+            Files.createDirectories(dir);
+        } catch (IOException e) {
+            log.error("创建上传目录失败: {}", dir, e);
+            return ApiResponse.error("上传目录不可用");
+        }
+        Path target = dir.resolve(fileName);
+        try {
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            log.error("保存头像失败: {}", target, e);
+            return ApiResponse.error("保存失败");
+        }
+        String urlPath = "/upload/" + fileName;
+        Map<String, String> data = new HashMap<>();
+        data.put("url", urlPath);
+        return ApiResponse.success(data);
+    }
+}

@@ -259,18 +259,31 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserInfo updateUserInfo(UUID userId, UserInfo userInfo) {
-        try {
-            // 这里应该更新数据库中的用户信息
-            // 为了演示，直接返回传入的用户信息
-            userInfo.setUserId(userId.toString());
-            
-            log.info("更新用户信息成功，用户ID：{}", userId);
-            return userInfo;
-            
-        } catch (Exception e) {
-            log.error("更新用户信息失败，用户ID：{}", userId, e);
-            throw new RuntimeException("更新用户信息失败", e);
+        User user = userRepository.findById(userId.toString())
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+        if (userInfo.getNickname() != null && !userInfo.getNickname().isEmpty()) {
+            user.setFullName(userInfo.getNickname());
         }
+        if (userInfo.getRealName() != null && !userInfo.getRealName().isEmpty()) {
+            user.setFullName(userInfo.getRealName());
+        }
+        if (userInfo.getAvatar() != null) {
+            user.setAvatar(userInfo.getAvatar().isEmpty() ? null : userInfo.getAvatar());
+        }
+        if (userInfo.getGender() != null) {
+            user.setGender(userInfo.getGender());
+        }
+        if (userInfo.getBirthdate() != null) {
+            try {
+                user.setBirthdate(new SimpleDateFormat("yyyy-MM-dd").parse(userInfo.getBirthdate()));
+            } catch (Exception ignored) {}
+        }
+        if (userInfo.getPhone() != null) {
+            user.setPhone(userInfo.getPhone().isEmpty() ? null : userInfo.getPhone());
+        }
+        userRepository.save(user);
+        log.info("更新用户信息成功，用户ID：{}", userId);
+        return getUserInfo(userId);
     }
     
     @Override

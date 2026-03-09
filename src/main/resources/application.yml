@@ -64,9 +64,23 @@ jwt:
   secret: l0FTlNA0iC4Q93eY4tnqq6IKa0LW6aUtUAodlOmn9e5l0eK1vEdP6KZYf9W5psD6
   expiration: 86400000
 
-# 图片存储路径
+# 图片存储路径（未启用腾讯云 COS 时使用本地目录）
 file:
   upload-dir: /upload
+
+# 腾讯云 COS（可选：配置后头像上传到 COS，返回 CDN/公网 URL）
+# 不配置或 enabled=false 时仍使用本地 file.upload-dir
+tencent:
+  cos:
+    enabled: ${TENCENT_COS_ENABLED:false}
+    secret-id: ${TENCENT_COS_SECRET_ID:}
+    secret-key: ${TENCENT_COS_SECRET_KEY:}
+    bucket: ${TENCENT_COS_BUCKET:}
+    region: ${TENCENT_COS_REGION:ap-shanghai}
+    # 存储路径前缀，如 avatar/
+    base-path: ${TENCENT_COS_BASE_PATH:avatar/}
+    # 可选：自定义域名（CDN），返回的 URL 将以此为准；不填则用 bucket.cos.region.myqcloud.com
+    cdn-domain: ${TENCENT_COS_CDN_DOMAIN:}
 
 # 日志配置
 logging:
