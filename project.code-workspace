@@ -1,0 +1,26 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../my-vue3-project"
+		}
+	],
+	"settings": {
+		"java.configuration.updateBuildConfiguration": "automatic",
+		"java.compile.nullAnalysis.mode": "automatic",
+		"java.debug.settings.onBuildFailureProceed": true,
+		"java.debug.settings.hotCodeReplace": "auto",
+		"java.debug.settings.enableRunDebugCodeLens": true,
+		"java.format.settings.url": "https://raw.githubusercontent.com/google/styleguide/gh-pages/eclipse-java-google-style.xml",
+		"java.format.settings.profile": "GoogleStyle",
+		"java.saveActions.organizeImports": true,
+		"java.completion.importOrder": [
+			"java",
+			"javax",
+			"org",
+			"com"
+		]
+	}
+}
