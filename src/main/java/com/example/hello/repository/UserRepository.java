@@ -14,6 +14,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     boolean existsByUsername(String username);
     
     boolean existsByPhone(String phone);
+
+    Optional<User> findByPhone(String phone);
     
     // 微信相关查询方法
     Optional<User> findByOpenId(String openId);

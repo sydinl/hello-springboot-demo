@@ -1,5 +1,6 @@
 package com.example.hello.service.impl;
 
+import com.example.hello.dto.BindReferrerResult;
 import com.example.hello.entity.DistributionConfig;
 import com.example.hello.entity.DistributionData;
 import com.example.hello.entity.DistributionOrder;
@@ -16,10 +17,9 @@ import com.example.hello.repository.UserRepository;
 import com.example.hello.repository.WithdrawalRepository;
 import com.example.hello.service.DistributionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Page;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -88,6 +88,8 @@ public class DistributionServiceImpl implements DistributionService {
         data.setTodayOrderCount((int) todayCount);
         long totalOrders = distributionOrderRepository.countByReferrerId(uid);
         data.setTotalOrderCount((int) totalOrders);
+        User user = userRepository.findById(uid).orElse(null);
+        data.setPhoneRequired(user == null || user.getPhone() == null || user.getPhone().trim().isEmpty());
         return data;
     }
 
@@ -99,6 +101,7 @@ public class DistributionServiceImpl implements DistributionService {
         data.setTeamCount(0);
         data.setTodayOrderCount(0);
         data.setTotalOrderCount(0);
+        data.setPhoneRequired(true);
         return data;
     }
 
@@ -122,36 +125,41 @@ public class DistributionServiceImpl implements DistributionService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean bindReferrer(String userId, String referrerId) {
+    public BindReferrerResult bindReferrer(String userId, String referrerId) {
         if (userId == null || referrerId == null || userId.trim().isEmpty() || referrerId.trim().isEmpty()) {
-            return false;
+            return BindReferrerResult.INVALID_PARAMS;
         }
         if (userId.equals(referrerId)) {
-            return false; // 不能绑定自己
+            return BindReferrerResult.SELF_OR_LOOP;
         }
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
-            return false;
+            return BindReferrerResult.INVALID_PARAMS;
         }
         if (user.getReferrerId() != null && !user.getReferrerId().isEmpty()) {
-            return false; // 已绑定过推荐人，不可变更
+            return BindReferrerResult.ALREADY_BOUND;
+        }
+        if (user.getPhone() == null || user.getPhone().trim().isEmpty()) {
+            return BindReferrerResult.USER_PHONE_REQUIRED;
         }
         User referrer = userRepository.findById(referrerId).orElse(null);
         if (referrer == null) {
-            return false; // 推荐人不存在
+            return BindReferrerResult.REFERRER_NOT_FOUND;
         }
-        // 防止循环：推荐人的上级链中不能包含当前用户（不能绑定自己的下级）
+        if (referrer.getPhone() == null || referrer.getPhone().trim().isEmpty()) {
+            return BindReferrerResult.REFERRER_PHONE_REQUIRED;
+        }
         String up = referrer.getReferrerId();
         while (up != null && !up.isEmpty()) {
             if (userId.equals(up)) {
-                return false;
+                return BindReferrerResult.SELF_OR_LOOP;
             }
             User upUser = userRepository.findById(up).orElse(null);
             up = upUser != null ? upUser.getReferrerId() : null;
         }
         user.setReferrerId(referrerId);
         userRepository.save(user);
-        return true;
+        return BindReferrerResult.SUCCESS;
     }
 
     @Override
@@ -174,6 +182,9 @@ public class DistributionServiceImpl implements DistributionService {
         User buyer = userRepository.findById(buyerUserId).orElse(null);
         if (buyer == null || buyer.getReferrerId() == null || buyer.getReferrerId().isBlank()) {
             return; // 无一级推荐人，不生成分销订单
+        }
+        if (buyer.getPhone() == null || buyer.getPhone().trim().isEmpty()) {
+            return; // 买家未绑手机，不参与分销佣金（防刷、按手机号确定上下级）
         }
         List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
         if (items == null || items.isEmpty()) {

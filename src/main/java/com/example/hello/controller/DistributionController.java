@@ -1,6 +1,7 @@
 package com.example.hello.controller;
 
 import com.example.hello.common.ApiResponse;
+import com.example.hello.dto.BindReferrerResult;
 import com.example.hello.entity.DistributionData;
 import com.example.hello.entity.DistributionOrder;
 import com.example.hello.entity.User;
@@ -131,11 +132,21 @@ public class DistributionController {
         if (referrerId == null || referrerId.isBlank()) {
             return ResponseEntity.ok(ApiResponse.error(400, "缺少推荐人ID"));
         }
-        boolean ok = distributionService.bindReferrer(userId, referrerId.trim());
-        if (ok) {
+        BindReferrerResult result = distributionService.bindReferrer(userId, referrerId.trim());
+        if (result == BindReferrerResult.SUCCESS) {
             return ResponseEntity.ok(ApiResponse.success());
         }
-        return ResponseEntity.ok(ApiResponse.error(400, "绑定失败：已绑定过推荐人、推荐人不存在或不能绑定自己"));
+        int code = 400;
+        if (result == BindReferrerResult.USER_PHONE_REQUIRED) {
+            code = 4001;
+        } else if (result == BindReferrerResult.REFERRER_PHONE_REQUIRED) {
+            code = 4002;
+        } else if (result == BindReferrerResult.ALREADY_BOUND) {
+            code = 4003;
+        } else if (result == BindReferrerResult.SELF_OR_LOOP || result == BindReferrerResult.REFERRER_NOT_FOUND) {
+            code = 4004;
+        }
+        return ResponseEntity.ok(ApiResponse.error(code, result.getMessage()));
     }
 
     /** 提现记录列表（带 token，分页，可选 status） */
@@ -234,23 +245,28 @@ public class DistributionController {
         return ResponseEntity.ok(ApiResponse.success(list));
     }
 
-    /** 推广信息：当前用户 ID 作为推荐人，用于生成推广链接/小程序码 scene */
+    /** 推广信息：当前用户 ID 作为推荐人，用于生成推广链接/小程序码 scene（需已绑定手机号） */
     @GetMapping("/promotion-info")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getPromotionInfo(
             @RequestHeader(value = "Authorization", required = false) String authorization) {
         String token = tokenUtil.extractTokenFromHeader(authorization);
         String userId = token != null ? tokenUtil.getUserIdFromToken(token) : null;
-        if (!StringUtils.hasText(userId)) {
+        if (userId == null || !StringUtils.hasText(userId)) {
             return ResponseEntity.ok(ApiResponse.error(401, "请先登录"));
         }
+        final String uid = userId;
+        User user = userRepository.findById(uid).orElse(null);
+        if (user == null || !StringUtils.hasText(user.getPhone())) {
+            return ResponseEntity.ok(ApiResponse.error(4001, "请先绑定手机号后再生成推广"));
+        }
         Map<String, Object> data = new java.util.HashMap<>();
-        data.put("referrerId", userId);
-        data.put("scene", "referrerId=" + userId);
-        data.put("invitePath", "/pages/index/index?referrerId=" + userId);
+        data.put("referrerId", uid);
+        data.put("scene", "referrerId=" + uid);
+        data.put("invitePath", "/pages/index/index?referrerId=" + uid);
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
-    /** 生成推广用小程序码图片，返回 base64 供前端展示/保存 */
+    /** 生成推广用小程序码图片，返回 base64 供前端展示/保存（需已绑定手机号） */
     @GetMapping("/promotion-qrcode/image")
     public ResponseEntity<ApiResponse<Map<String, String>>> getPromotionQrcodeImage(
             @RequestHeader(value = "Authorization", required = false) String authorization) {
@@ -259,7 +275,12 @@ public class DistributionController {
         if (userId == null || !StringUtils.hasText(userId)) {
             return ResponseEntity.ok(ApiResponse.error(401, "请先登录"));
         }
-        String scene = userId.replace("-", "");
+        final String uid = userId;
+        User user = userRepository.findById(uid).orElse(null);
+        if (user == null || !StringUtils.hasText(user.getPhone())) {
+            return ResponseEntity.ok(ApiResponse.error(4001, "请先绑定手机号后再生成推广"));
+        }
+        String scene = uid.replace("-", "");
         if (scene.length() > 32) scene = scene.substring(0, 32);
         String page = "pages/index/index";
         byte[] bytes = wechatMiniprogramService.generateUnlimitedWxacode(scene, page);

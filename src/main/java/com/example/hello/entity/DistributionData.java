@@ -17,4 +17,6 @@ public class DistributionData {
     private Integer todayOrderCount;
     /** 分销订单总数（用于展示「分销订单」入口数字） */
     private Integer totalOrderCount;
+    /** 是否未绑手机（前端用于提示：绑定手机号后可发展下级并获取佣金） */
+    private Boolean phoneRequired;
 }

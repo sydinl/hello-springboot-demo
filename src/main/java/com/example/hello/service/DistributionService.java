@@ -1,5 +1,6 @@
 package com.example.hello.service;
 
+import com.example.hello.dto.BindReferrerResult;
 import com.example.hello.entity.DistributionConfig;
 import com.example.hello.entity.DistributionData;
 import com.example.hello.entity.DistributionOrder;
@@ -24,10 +25,10 @@ public interface DistributionService {
     Page<DistributionOrder> getDistributionOrdersByStatus(UUID userId, String status, Pageable pageable);
 
     /**
-     * 绑定推荐人（一级）。仅当前用户未绑定过时有效，且不能绑定自己。
-     * @return 成功为 true，已绑定过或参数无效为 false
+     * 绑定推荐人（一级）。要求当前用户与推荐人均已绑手机；仅未绑定过时有效。
+     * @return 结果枚举，便于前端区分「需绑手机」等
      */
-    boolean bindReferrer(String userId, String referrerId);
+    BindReferrerResult bindReferrer(String userId, String referrerId);
 
     /**
      * 订单支付成功后生成二级分销订单（一级、二级推荐人各一条，若有）。

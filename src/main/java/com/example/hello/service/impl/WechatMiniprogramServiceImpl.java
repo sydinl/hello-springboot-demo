@@ -264,7 +264,11 @@ public class WechatMiniprogramServiceImpl implements WechatMiniprogramService {
         // 设置基本信息
         user.setUsername("wx_" + wechatUserInfo.getOpenId().substring(0, Math.min(8, wechatUserInfo.getOpenId().length())));
         user.setPassword(""); // 微信登录用户不需要密码
-        user.setPhone(generateMockPhoneNumber(wechatUserInfo.getOpenId())); // 生成模拟电话号码避免唯一约束冲突
+        if (isDevelopmentMode()) {
+            user.setPhone(generateMockPhoneNumber(wechatUserInfo.getOpenId())); // 仅开发模式：避免唯一约束，生产环境不写
+        } else {
+            user.setPhone(null); // 生产环境新用户需在「个人资料」绑定手机号后才能参与分销
+        }
         user.setFullName(request.getNickname() != null ? request.getNickname() : "微信用户");
         user.setRole("USER");
         user.setGender(request.getGender() != null ? 

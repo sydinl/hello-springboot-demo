@@ -279,7 +279,15 @@ public class UserServiceImpl implements UserService {
             } catch (Exception ignored) {}
         }
         if (userInfo.getPhone() != null) {
-            user.setPhone(userInfo.getPhone().isEmpty() ? null : userInfo.getPhone());
+            String phone = userInfo.getPhone().isEmpty() ? null : userInfo.getPhone().trim();
+            if (phone != null && !phone.isEmpty()) {
+                userRepository.findByPhone(phone).ifPresent(other -> {
+                    if (!other.getId().equals(user.getId())) {
+                        throw new RuntimeException("该手机号已被其他账号绑定");
+                    }
+                });
+            }
+            user.setPhone(phone);
         }
         userRepository.save(user);
         log.info("更新用户信息成功，用户ID：{}", userId);
