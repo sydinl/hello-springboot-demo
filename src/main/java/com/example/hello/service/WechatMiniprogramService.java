@@ -28,6 +28,13 @@ public interface WechatMiniprogramService {
      * @return 新的访问令牌
      */
     String refreshAccessToken(String refreshToken);
+
+    /**
+     * 通过微信手机号授权 code 获取用户手机号
+     * @param phoneCode 小程序端 wx.getPhoneNumber 返回的 code
+     * @return 解密得到的手机号（开发环境可返回模拟手机号）
+     */
+    String getPhoneNumberByCode(String phoneCode);
     
     /**
      * 验证访问令牌

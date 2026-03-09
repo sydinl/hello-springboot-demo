@@ -52,6 +52,7 @@ public class WechatMiniprogramServiceImpl implements WechatMiniprogramService {
     private static final String WECHAT_CODE2SESSION_URL = "https://api.weixin.qq.com/sns/jscode2session";
     private static final String WECHAT_TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/token";
     private static final String WECHAT_GETWXACODE_UNLIMIT_URL = "https://api.weixin.qq.com/wxa/getwxacodeunlimit";
+    private static final String WECHAT_GET_PHONE_URL = "https://api.weixin.qq.com/wxa/business/getuserphonenumber";
     
     @Override
     public WechatMiniprogramLoginResponse login(WechatMiniprogramLoginRequest request) {
@@ -190,6 +191,58 @@ public class WechatMiniprogramServiceImpl implements WechatMiniprogramService {
         // 这里可以实现刷新令牌的逻辑
         // 目前简单返回原令牌
         return refreshToken;
+    }
+
+    @Override
+    public String getPhoneNumberByCode(String phoneCode) {
+        if (phoneCode == null || phoneCode.isEmpty()) {
+            throw new RuntimeException("手机号授权 code 不能为空");
+        }
+        // 开发模式下返回模拟手机号，便于联调
+        if (isDevelopmentMode()) {
+            String mockPhone = generateMockPhoneNumber("phone_" + phoneCode);
+            log.info("开发模式：使用mock手机号 {} 对应 phoneCode {}", mockPhone, phoneCode);
+            return mockPhone;
+        }
+        String accessToken = getWechatAccessToken();
+        if (accessToken == null || accessToken.isEmpty()) {
+            throw new RuntimeException("获取微信 access_token 失败，请稍后重试");
+        }
+        String url = WECHAT_GET_PHONE_URL + "?access_token=" + accessToken;
+        try {
+            Map<String, String> body = new HashMap<>();
+            body.put("code", phoneCode);
+            String bodyJson = objectMapper.writeValueAsString(body);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            ResponseEntity<String> resp = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    new HttpEntity<>(bodyJson, headers),
+                    String.class
+            );
+            String respBody = resp.getBody();
+            log.info("微信手机号接口响应: {}", respBody);
+            JsonNode node = objectMapper.readTree(respBody);
+            if (node.has("errcode") && node.get("errcode").asInt() != 0) {
+                String errmsg = node.has("errmsg") ? node.get("errmsg").asText() : "未知错误";
+                throw new RuntimeException("获取手机号失败: " + errmsg);
+            }
+            JsonNode phoneInfo = node.get("phone_info");
+            if (phoneInfo == null || !phoneInfo.has("phoneNumber")) {
+                throw new RuntimeException("获取手机号失败：返回数据不完整");
+            }
+            String phoneNumber = phoneInfo.get("phoneNumber").asText();
+            if (phoneNumber == null || phoneNumber.isEmpty()) {
+                throw new RuntimeException("获取手机号失败：手机号为空");
+            }
+            return phoneNumber;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("调用微信手机号接口异常", e);
+            throw new RuntimeException("获取手机号失败，请稍后重试", e);
+        }
     }
     
     @Override

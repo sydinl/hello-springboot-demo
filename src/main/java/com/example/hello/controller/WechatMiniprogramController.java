@@ -2,6 +2,7 @@ package com.example.hello.controller;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,7 +15,10 @@ import com.example.hello.common.ApiResponse;
 import com.example.hello.common.RateLimit;
 import com.example.hello.dto.WechatMiniprogramLoginRequest;
 import com.example.hello.dto.WechatMiniprogramLoginResponse;
+import com.example.hello.entity.UserInfo;
+import com.example.hello.service.UserService;
 import com.example.hello.service.WechatMiniprogramService;
+import com.example.hello.util.TokenUtil;
 import jakarta.validation.Valid;
 
 /**
@@ -27,6 +31,12 @@ public class WechatMiniprogramController {
     
     @Autowired
     private WechatMiniprogramService wechatMiniprogramService;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private TokenUtil tokenUtil;
     
     /**
      * 微信小程序登录
@@ -111,6 +121,36 @@ public class WechatMiniprogramController {
             return ApiResponse.success(userInfo);
         } catch (Exception e) {
             return ApiResponse.error("获取用户信息失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 绑定微信手机号（通过 getPhoneNumber 返回的 code）
+     */
+    @PostMapping("/bind-phone")
+    public ApiResponse<Map<String, Object>> bindPhone(@RequestHeader(value = "Authorization", required = false) String authorization,
+                                                      @RequestBody Map<String, String> request) {
+        try {
+            String userId = tokenUtil.getUserIdFromHeader(authorization);
+            if (userId == null || userId.isEmpty()) {
+                return ApiResponse.error(2001, "认证失败，请重新登录");
+            }
+            String code = request != null ? request.get("code") : null;
+            if (code == null || code.isEmpty()) {
+                return ApiResponse.error("手机号授权 code 不能为空");
+            }
+            // 1. 调用微信接口解出手机号
+            String phoneNumber = wechatMiniprogramService.getPhoneNumberByCode(code);
+            // 2. 通过用户服务更新手机号（内部已做唯一性校验）
+            UserInfo info = new UserInfo();
+            info.setPhone(phoneNumber);
+            UserInfo updated = userService.updateUserInfo(UUID.fromString(userId), info);
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("phoneNumber", updated.getPhone());
+            return ApiResponse.success(data);
+        } catch (Exception e) {
+            return ApiResponse.error("绑定手机号失败：" + e.getMessage());
         }
     }
 }

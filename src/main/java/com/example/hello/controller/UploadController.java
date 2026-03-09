@@ -43,9 +43,13 @@ public class UploadController {
     @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<Map<String, String>> uploadAvatar(@RequestParam("file") MultipartFile file) {
         if (file == null || file.isEmpty()) {
+            log.warn("上传头像失败：文件为空");
             return ApiResponse.error("请选择图片");
         }
+        log.info("收到头像上传请求, originalName={}, size={} bytes",
+                 file.getOriginalFilename(), file.getSize());
         if (file.getSize() > MAX_AVATAR_SIZE) {
+            log.warn("上传头像失败：文件过大 size={} > {}", file.getSize(), MAX_AVATAR_SIZE);
             return ApiResponse.error("图片大小不能超过 2MB");
         }
         String originalName = file.getOriginalFilename();
@@ -68,6 +72,7 @@ public class UploadController {
             }
         }
         if (!allowed) {
+            log.warn("上传头像失败：不支持的扩展名 {}", ext);
             return ApiResponse.error("仅支持 jpg、png、gif、webp 格式");
         }
         String fileName = "avatar_" + UUID.randomUUID().toString().replace("-", "") + ext;
