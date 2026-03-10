@@ -221,6 +221,56 @@
         }
       },
       {
+        "name": "生成核销码",
+        "path": "/api/order/verification/generate",
+        "method": "POST",
+        "description": "为已支付订单生成核销码",
+        "params": {
+          "orderId": "string, 订单ID"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "verificationCode": "string, 核销码"
+          }
+        }
+      },
+      {
+        "name": "获取核销码",
+        "path": "/api/order/verification/get",
+        "method": "GET",
+        "description": "获取订单的核销码",
+        "params": {
+          "orderId": "string, 订单ID"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "verificationCode": "string, 核销码"
+          }
+        }
+      },
+      {
+        "name": "获取核销码二维码",
+        "path": "/api/order/verification/qrcode",
+        "method": "GET",
+        "description": "生成并返回订单核销码的二维码图片（Base64 编码的 PNG）",
+        "params": {
+          "orderId": "string, 订单ID"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "verificationCode": "string, 核销码",
+            "imageBase64": "string, Base64 编码的二维码 PNG 图片",
+            "mimeType": "string, 图片类型，一般为 image/png"
+          }
+        }
+      },
+      {
         "name": "支付回调处理",
         "path": "/api/order/payment/callback",
         "method": "POST",
@@ -231,6 +281,22 @@
         "response": {
           "code": "number, 状态码",
           "message": "string, 提示信息"
+        }
+      },
+      {
+        "name": "上传项目图片",
+        "path": "/api/upload/project-image",
+        "method": "POST",
+        "description": "管理员上传项目图片，优先上传到腾讯云 COS，未启用 COS 时保存到本地 upload/project-images 目录，返回图片 URL",
+        "params": {
+          "file": "file, 必填，图片文件（jpg、jpeg、png、gif、webp，建议 ≤3MB）"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "url": "string, 项目图片的公网访问 URL 或本地相对路径（/upload/project-images/xxx.jpg）"
+          }
         }
       },
       {

@@ -1524,8 +1524,18 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="project-image" class="form-label">项目图片URL</label>
-                                <input type="url" class="form-control" id="project-image"
-                                    placeholder="https://example.com/image.jpg">
+                                <div class="input-group mb-2">
+                                    <input type="url" class="form-control" id="project-image"
+                                        placeholder="https://example.com/image.jpg">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="triggerProjectImageSelect()">选择图片</button>
+                                    <button class="btn btn-outline-success" type="button" onclick="uploadProjectImage()">上传到COS</button>
+                                </div>
+                                <input type="file" id="project-image-file" accept="image/*" class="d-none">
+                                <div class="form-text">可粘贴图片URL，或选择本地图片上传到 COS 后自动填充</div>
+                                <div class="mt-2" id="project-image-preview-container" style="display:none;">
+                                    <img id="project-image-preview" src="" alt="项目图片预览"
+                                         class="img-thumbnail" style="max-width: 160px; max-height: 120px; object-fit: cover;">
+                                </div>
                             </div>
                             <div class="col-12">
                                 <label for="project-description" class="form-label">项目描述</label>
@@ -2418,6 +2428,68 @@
             .catch(error => {
                 console.error('保存项目失败:', error);
                 alert('保存项目失败');
+            });
+        }
+
+        // 触发选择项目图片文件
+        function triggerProjectImageSelect() {
+            const input = document.getElementById('project-image-file');
+            if (input) {
+                input.click();
+            }
+        }
+
+        // 上传项目图片到后端，再由后端上传到 COS 或本地
+        function uploadProjectImage(event) {
+            const fileInput = document.getElementById('project-image-file');
+            const urlInput = document.getElementById('project-image');
+            const previewImg = document.getElementById('project-image-preview');
+            const previewContainer = document.getElementById('project-image-preview-container');
+
+            if (!fileInput || !urlInput) {
+                alert('文件选择控件未初始化');
+                return;
+            }
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('请先选择要上传的图片');
+                return;
+            }
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const uploadButton = event && event.target ? event.target : null;
+            if (uploadButton) {
+                uploadButton.disabled = true;
+                uploadButton.textContent = '上传中...';
+            }
+
+            fetch('/api/upload/project-image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.code === 200 && data.data && data.data.url) {
+                    const imageUrl = data.data.url;
+                    urlInput.value = imageUrl;
+                    if (previewImg && previewContainer) {
+                        previewImg.src = imageUrl;
+                        previewContainer.style.display = 'block';
+                    }
+                } else {
+                    alert('上传失败: ' + (data.message || '未知错误'));
+                }
+            })
+            .catch(err => {
+                console.error('上传项目图片失败', err);
+                alert('上传项目图片失败，请稍后重试');
+            })
+            .finally(() => {
+                if (uploadButton) {
+                    uploadButton.disabled = false;
+                    uploadButton.textContent = '上传到COS';
+                }
             });
         }
 

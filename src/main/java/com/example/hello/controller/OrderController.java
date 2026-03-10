@@ -1,6 +1,7 @@
 package com.example.hello.controller;
 
 import java.math.BigDecimal;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,12 @@ import com.example.hello.service.CouponValidationService.CouponValidationResult;
 import com.example.hello.service.OrderService;
 import com.example.hello.util.TokenUtil;
 import lombok.extern.slf4j.Slf4j;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.qrcode.QRCodeWriter;
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
 
 @RestController
 @RequestMapping("/api/order")
@@ -166,6 +173,54 @@ public class OrderController {
         } catch (Exception e) {
             log.error("获取核销码失败", e);
             return ResponseEntity.ok(ApiResponse.error(3001, e.getMessage()));
+        }
+    }
+
+    // 获取核销码二维码（需登录）
+    @GetMapping("/verification/qrcode")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getVerificationQrcode(
+            @RequestHeader("Authorization") String authorization,
+            @RequestParam String orderId) {
+        try {
+            String userId = tokenUtil.getUserIdFromHeader(authorization);
+            if (userId == null) {
+                return ResponseEntity.ok(ApiResponse.error(2001, "请先登录"));
+            }
+            if (orderId == null || orderId.isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.error(1001, "订单ID不能为空"));
+            }
+            // 优先获取现有核销码，没有则尝试生成
+            String code;
+            try {
+                code = orderService.getVerificationCode(orderId, userId);
+            } catch (Exception e) {
+                // 若尚未生成且提示“仅已支付订单可生成核销码”，则尝试自动生成
+                code = orderService.generateVerificationCode(orderId, userId);
+            }
+            if (code == null || code.isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.error(3001, "核销码不存在或生成失败"));
+            }
+
+            // 生成二维码内容：简单使用核销码本身
+            String qrContent = code;
+            int size = 280;
+            QRCodeWriter qrCodeWriter = new QRCodeWriter();
+            java.util.Map<EncodeHintType, Object> hints = new java.util.HashMap<>();
+            hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
+            hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M);
+            BitMatrix bitMatrix = qrCodeWriter.encode(qrContent, BarcodeFormat.QR_CODE, size, size, hints);
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", baos);
+            String base64 = Base64.getEncoder().encodeToString(baos.toByteArray());
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("imageBase64", base64);
+            data.put("mimeType", "image/png");
+            data.put("verificationCode", code);
+            return ResponseEntity.ok(ApiResponse.success(data));
+        } catch (Exception e) {
+            log.error("生成核销码二维码失败", e);
+            return ResponseEntity.ok(ApiResponse.error(3001, "生成二维码失败：" + e.getMessage()));
         }
     }
     
