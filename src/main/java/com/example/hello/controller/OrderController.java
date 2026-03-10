@@ -223,6 +223,36 @@ public class OrderController {
             return ResponseEntity.ok(ApiResponse.error(3001, "生成二维码失败：" + e.getMessage()));
         }
     }
+
+    // 核销订单（仅核销员或管理员，需登录）
+    @PostMapping("/verification/consume")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> consumeVerification(
+            @RequestHeader("Authorization") String authorization,
+            @RequestBody Map<String, String> body) {
+        try {
+            String userId = tokenUtil.getUserIdFromHeader(authorization);
+            String role = tokenUtil.getUserRoleFromHeader(authorization);
+            if (userId == null) {
+                return ResponseEntity.ok(ApiResponse.error(2001, "请先登录"));
+            }
+            if (role == null || !(role.equals("ADMIN") || role.equals("VERIFIER"))) {
+                return ResponseEntity.ok(ApiResponse.error(2003, "无权核销订单"));
+            }
+            String verificationCode = body != null ? body.get("verificationCode") : null;
+            if (verificationCode == null || verificationCode.isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.error(1001, "核销码不能为空"));
+            }
+            Order order = orderService.consumeVerificationCode(verificationCode, userId);
+            Map<String, Object> data = new HashMap<>();
+            data.put("orderId", order.getOrderId());
+            data.put("orderNo", order.getOrderNo());
+            data.put("status", order.getStatus());
+            return ResponseEntity.ok(ApiResponse.success(data));
+        } catch (Exception e) {
+            log.error("核销订单失败", e);
+            return ResponseEntity.ok(ApiResponse.error(3001, e.getMessage()));
+        }
+    }
     
     // 按用户ID查询订单列表
     @GetMapping("/list")

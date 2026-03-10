@@ -478,4 +478,24 @@ public class OrderServiceImpl implements OrderService {
         }
         return order.getVerificationCode();
     }
+
+    @Override
+    @Transactional
+    public Order consumeVerificationCode(String verificationCode, String operatorUserId) {
+        if (verificationCode == null || verificationCode.isEmpty()) {
+            throw new RuntimeException("核销码不能为空");
+        }
+        Order order = orderRepository.findByVerificationCode(verificationCode)
+                .orElseThrow(() -> new RuntimeException("核销码无效"));
+        // 仅已支付或服务中的订单允许核销
+        if (!"paid".equals(order.getStatus()) && !"shipping".equals(order.getStatus())) {
+            throw new RuntimeException("当前订单状态不支持核销");
+        }
+        // 将订单状态置为已完成，并清除核销码防止重复使用
+        order.setStatus("completed");
+        order.setVerificationCode(null);
+        Order updated = orderRepository.save(order);
+        log.info("订单{}已由用户{}完成核销", order.getOrderId(), operatorUserId);
+        return updated;
+    }
 }

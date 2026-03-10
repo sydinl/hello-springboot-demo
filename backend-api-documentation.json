@@ -271,6 +271,24 @@
         }
       },
       {
+        "name": "核销订单（通过核销码）",
+        "path": "/api/order/verification/consume",
+        "method": "POST",
+        "description": "核销员或管理员扫描核销码后调用该接口完成订单核销，仅支持状态为 paid 或 shipping 的订单，核销成功后订单状态置为 completed 且核销码失效",
+        "params": {
+          "verificationCode": "string, 必填，核销码（通常通过二维码扫描得到）"
+        },
+        "response": {
+          "code": "number, 状态码",
+          "message": "string, 提示信息",
+          "data": {
+            "orderId": "string, 订单ID",
+            "orderNo": "string, 订单号",
+            "status": "string, 核销后的订单状态，一般为 completed"
+          }
+        }
+      },
+      {
         "name": "支付回调处理",
         "path": "/api/order/payment/callback",
         "method": "POST",

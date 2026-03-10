@@ -649,11 +649,12 @@
                                     </div>
                                     <div class="col-md-2">
                                         <label class="form-label">角色筛选</label>
-                                        <select class="form-select" id="user-role-filter">
-                                            <option value="">全部角色</option>
-                                            <option value="ADMIN">管理员</option>
-                                            <option value="USER">普通用户</option>
-                                        </select>
+                                    <select class="form-select" id="user-role-filter">
+                                        <option value="">全部角色</option>
+                                        <option value="ADMIN">管理员</option>
+                                        <option value="VERIFIER">核销员</option>
+                                        <option value="USER">普通用户</option>
+                                    </select>
                                     </div>
                                     <div class="col-md-2">
                                         <label class="form-label">状态筛选</label>
@@ -1862,6 +1863,7 @@
                                             class="text-danger">*</span></label>
                                     <select class="form-select" id="user-role" required>
                                         <option value="USER">普通用户</option>
+                                        <option value="VERIFIER">核销员</option>
                                         <option value="ADMIN">管理员</option>
                                     </select>
                                 </div>

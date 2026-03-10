@@ -32,4 +32,7 @@ public interface OrderRepository extends JpaRepository<Order, String> {
     
     // 根据订单号查询
     Optional<Order> findByOrderNo(String orderNo);
+
+    // 根据核销码查询订单
+    Optional<Order> findByVerificationCode(String verificationCode);
 }
