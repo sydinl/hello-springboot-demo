@@ -277,3 +277,19 @@ CREATE TABLE `distribution_orders` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`),
   FOREIGN KEY (`order_id`) REFERENCES `orders`(`order_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='分销订单表';
+
+-- 首页轮播图表
+CREATE TABLE `banners` (
+  `id` VARCHAR(36) NOT NULL PRIMARY KEY COMMENT '轮播图ID',
+  `title` VARCHAR(200) NULL COMMENT '轮播图标题',
+  `image_url` VARCHAR(500) NOT NULL COMMENT '图片URL',
+  `jump_type` TINYINT DEFAULT 0 COMMENT '跳转类型：0=无跳转，1=小程序内部页面，2=外部H5链接',
+  `jump_target` VARCHAR(500) NULL COMMENT '跳转目标（页面路径或URL）',
+  `position` VARCHAR(50) DEFAULT 'home' COMMENT '展示位置：如home首页',
+  `sort` INT DEFAULT 0 COMMENT '排序值，越大越靠前',
+  `enabled` BOOLEAN DEFAULT TRUE COMMENT '是否启用',
+  `start_time` DATETIME NULL COMMENT '开始展示时间',
+  `end_time` DATETIME NULL COMMENT '结束展示时间',
+  `create_time` DATETIME NOT NULL COMMENT '创建时间',
+  `update_time` DATETIME NOT NULL COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='轮播图表';
